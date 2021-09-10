@@ -1,0 +1,83 @@
+package handlers
+
+import (
+	"encoding/json"
+	"github.com/spike-events/spike-broker/pkg/utils"
+	"net/http"
+	"strings"
+
+	"github.com/spike-events/spike-broker/pkg/service"
+)
+
+// AuthMiddleware middleware de autenticação oauth.v3
+func AuthMiddleware(oauth ...*service.AuthRid) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			for _, auth := range oauth {
+				if strings.HasPrefix(r.URL.Path, "/ws") {
+					break
+				}
+				request := strings.Split(r.URL.Path, "/")
+				if len(request) <= 2 || request[2] != auth.Service {
+					continue
+				}
+
+				validBearer := true
+				for _, p := range auth.Patterns {
+					if p.Auth() {
+						continue
+					}
+
+					/* Handle NoAuth endpoints */
+					endpoint := "/api/" + strings.ReplaceAll(p.EndpointNoMethod(), ".", "/")
+					if r.URL.Path == endpoint && r.Method == p.Method {
+						validBearer = false
+						break
+					}
+
+					if !strings.Contains(p.EndpointNoMethod(), "$") {
+						continue
+					}
+
+					partsEndpoint := strings.Split(endpoint, "/")
+					partsRequest := strings.Split(r.URL.Path, "/")
+					if len(partsEndpoint) != len(partsRequest) {
+						continue
+					}
+
+					for i := range partsRequest {
+						if strings.HasPrefix(partsEndpoint[i], "$") {
+							partsRequest[i] = partsEndpoint[i]
+							continue
+						}
+						if partsEndpoint[i] != partsRequest[i] {
+							break
+						}
+					}
+					if strings.Join(partsRequest, ".") == strings.Join(partsEndpoint, ".") {
+						validBearer = false
+						break
+					}
+				}
+
+				if validBearer {
+					rawToken, ok := utils.GetBearer(r)
+					if !ok {
+						w.WriteHeader(http.StatusUnauthorized)
+						return
+					}
+
+					var processedToken json.RawMessage
+					processedToken, ok = auth.Auth.ValidateToken([]byte(rawToken))
+					if !ok {
+						w.WriteHeader(http.StatusUnauthorized)
+						return
+					}
+					r.Header.Set("token", string(processedToken))
+				}
+				break
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
