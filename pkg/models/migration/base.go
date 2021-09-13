@@ -12,7 +12,7 @@ import (
 
 // Migration interface
 type Migration interface {
-	Migration(*gorm.DB, request.Provider)
+	Migration(*gorm.DB, request.Provider) error
 	Migrate(*gorm.DB, request.Provider, string, []Versions) error
 	Versions() []Versions
 }
@@ -56,7 +56,7 @@ func (m *Base) Migrate(db *gorm.DB, provider request.Provider, name string, vers
 				return nil
 			})
 			if err != nil {
-				panic(err)
+				return err
 			}
 		}
 	}

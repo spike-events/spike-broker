@@ -26,6 +26,6 @@ func (a *srv1Migration) Versions() []migration.Versions {
 	return []migration.Versions{&v1{}}
 }
 
-func (a *srv1Migration) Migration(db *gorm.DB, provider request.Provider) {
-	a.Migrate(db, provider, rids.Route().Name(), a.Versions())
+func (a *srv1Migration) Migration(db *gorm.DB, provider request.Provider) error {
+	return a.Migrate(db, provider, rids.Route().Name(), a.Versions())
 }

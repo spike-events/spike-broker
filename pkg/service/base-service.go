@@ -245,8 +245,11 @@ func (s *Base) Init(migration migration.Migration, subscribers ...func()) {
 
 	if migration != nil {
 		s.Lock("api-migration")
-		migration.Migration(s.DB(), s.provider)
+		err := migration.Migration(s.DB(), s.provider)
 		s.Unlock("api-migration")
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	if len(subscribers) > 0 {
