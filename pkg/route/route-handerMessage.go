@@ -10,10 +10,10 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi"
-	"github.com/vincent-petithory/dataurl"
 	"github.com/spike-events/spike-broker/pkg/models"
 	"github.com/spike-events/spike-broker/pkg/rids"
 	"github.com/spike-events/spike-broker/pkg/service/request"
+	"github.com/vincent-petithory/dataurl"
 )
 
 func (s *routeService) handler(endpoint rids.EndpointRest, w http.ResponseWriter, r *http.Request) {
@@ -61,7 +61,7 @@ func (s *routeService) handler(endpoint rids.EndpointRest, w http.ResponseWriter
 	}
 
 	if len(token) > 0 {
-		call.Token = []byte(token)
+		call.Token = token
 	}
 
 	if r.Method == http.MethodGet {
@@ -84,7 +84,7 @@ func (s *routeService) handler(endpoint rids.EndpointRest, w http.ResponseWriter
 		callAuth := request.NewRequest(permission)
 		callAuth.Form = r.Form
 		if token != "" {
-			callAuth.Token = []byte(token)
+			callAuth.Token = token
 		}
 
 		if !s.auths[0].Auth.UserHavePermission(callAuth) {
