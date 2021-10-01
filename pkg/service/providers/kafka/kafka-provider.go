@@ -191,7 +191,7 @@ func (s *KafkaConn) newMessage(monitor bool, m *kafka.Message, p *rids.Pattern, 
 			Method:   p.Method,
 		})
 
-		req.Token = msg.RawToken()
+		req.Token = msg.Token
 		req.Form = msg.Form
 		req.Params = msg.Params
 
@@ -273,7 +273,7 @@ func (s KafkaConn) Publish(p *rids.Pattern, payload *request.CallRequest, token 
 		payload.Query = string(query)
 	}
 	if len(token) > 0 && token[0] != nil && len(token[0]) > 0 {
-		payload.Token = token[0]
+		payload.Token = string(token[0])
 	}
 	specific := p.EndpointName()
 	for key, vl := range p.Params {
@@ -351,7 +351,7 @@ func (s KafkaConn) Request(p *rids.Pattern, payload *request.CallRequest, rs int
 		payload.Query = string(query)
 	}
 	if len(token) > 0 && token[0] != nil && len(token[0]) > 0 {
-		payload.Token = token[0]
+		payload.Token = string(token[0])
 	}
 
 	// Check dependencies

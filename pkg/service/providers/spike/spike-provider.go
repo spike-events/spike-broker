@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"github.com/gofrs/uuid"
 	"github.com/hetiansu5/urlquery"
-	spike_io "github.com/spike-events/spike-events"
-	"github.com/spike-events/spike-events/pkg/client"
 	"github.com/spike-events/spike-broker/pkg/models"
 	"github.com/spike-events/spike-broker/pkg/rids"
 	"github.com/spike-events/spike-broker/pkg/service/request"
+	spike_io "github.com/spike-events/spike-events"
+	"github.com/spike-events/spike-events/pkg/client"
 	"log"
 	"net/http"
 	"os"
@@ -158,7 +158,7 @@ func (s *SpikeConn) newMessage(monitor bool, m *client.Message, p *rids.Pattern,
 			Method:   p.Method,
 		})
 
-		req.Token = msg.RawToken()
+		req.Token = string(msg.RawToken())
 		req.Form = msg.Form
 		req.Params = msg.Params
 
@@ -240,7 +240,7 @@ func (s SpikeConn) Publish(p *rids.Pattern, payload *request.CallRequest, token 
 		payload.Query = string(query)
 	}
 	if len(token) > 0 && token[0] != nil && len(token[0]) > 0 {
-		payload.Token = token[0]
+		payload.Token = string(token[0])
 	}
 	specific := p.EndpointName()
 	for key, vl := range p.Params {
@@ -299,7 +299,7 @@ func (s SpikeConn) Request(p *rids.Pattern, payload *request.CallRequest, rs int
 		payload.Query = string(query)
 	}
 	if len(token) > 0 && token[0] != nil && len(token[0]) > 0 {
-		payload.Token = token[0]
+		payload.Token = string(token[0])
 	}
 
 	// Check dependencies

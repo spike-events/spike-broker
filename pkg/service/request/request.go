@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/hetiansu5/urlquery"
-	"github.com/vincent-petithory/dataurl"
 	"github.com/spike-events/spike-broker/pkg/utils"
+	"github.com/vincent-petithory/dataurl"
 	"log"
 	"net/http"
 	"net/url"
@@ -59,7 +59,7 @@ type CallRequest struct {
 
 	PostForm url.Values
 	Form     url.Values
-	Token    json.RawMessage
+	Token    string
 	Query    string
 	Endpoint string
 }
@@ -76,13 +76,13 @@ type ErrorRequest struct {
 // ParseToken logado
 func (c *CallRequest) ParseToken(t interface{}) {
 	token := c.Token
-	if token != nil && len(token) > 0 {
-		json.Unmarshal(token, &t)
+	if len(token) > 0 {
+		json.Unmarshal([]byte(token), &t)
 	}
 }
 
 func (c *CallRequest) RawToken() json.RawMessage {
-	return c.Token
+	return []byte(c.Token)
 }
 
 func (c *CallRequest) SetProvider(provider Provider) {
