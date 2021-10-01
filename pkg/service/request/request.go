@@ -127,6 +127,8 @@ func NewRequest(data interface{}) *CallRequest {
 	case []byte:
 		panic("invalid data")
 	case nil:
+	case string:
+		payload = []byte(fmt.Sprint(data))
 	default:
 		data = utils.PointerFromInterface(data)
 		payload, err = json.Marshal(data)
