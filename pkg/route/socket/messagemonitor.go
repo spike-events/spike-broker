@@ -52,7 +52,7 @@ func (m *WSMessageMonitor) Handle(ws *WSConnection) *request.ErrorRequest {
 	if endpoint.Authenticated && len(ws.auth) > 0 {
 
 		callAuth := request.NewRequest(permission)
-		callAuth.Token = ws.token
+		callAuth.Token = string(ws.token)
 
 		if !ws.auth[0].Auth.UserHavePermission(callAuth) {
 			return &request.ErrorStatusForbidden
