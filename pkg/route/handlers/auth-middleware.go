@@ -74,6 +74,9 @@ func AuthMiddleware(oauth ...*service.AuthRid) func(http.Handler) http.Handler {
 						return
 					}
 					r.Header.Set("token", string(processedToken))
+				} else {
+					rawToken, _ := utils.GetBearer(r)
+					r.Header.Set("token", rawToken)
 				}
 				break
 			}
