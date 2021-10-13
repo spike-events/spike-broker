@@ -16,7 +16,7 @@ type WSMessageMonitor struct {
 func (m *WSMessageMonitor) Handle(ws *WSConnection) *request.ErrorRequest {
 
 	if len(ws.token) != 0 {
-		rErr := ws.Broker().Request(rids.Route().ValidateToken(), request.NewRequest(ws.token), nil)
+		rErr := ws.Broker().Request(rids.Route().ValidateToken(), nil, nil, ws.token)
 		if rErr != nil {
 			return rErr
 		}

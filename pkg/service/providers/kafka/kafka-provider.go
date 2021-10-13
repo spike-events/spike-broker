@@ -67,9 +67,9 @@ func (s *KafkaConn) subscribe(monitor bool, group string, p *rids.Pattern, hc fu
 	}
 
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
-		"bootstrap.servers":        s.config.KafkaURL,
-		"group.id":                 group,
-		"auto.offset.reset":        "earliest",
+		"bootstrap.servers": s.config.KafkaURL,
+		"group.id":          group,
+		"auto.offset.reset": "earliest",
 		//"go.events.channel.enable": true,
 	})
 	if err != nil {
@@ -174,12 +174,12 @@ func (s *KafkaConn) newMessage(monitor bool, m *kafka.Message, p *rids.Pattern, 
 	}
 
 	if p.Authenticated {
-		if len(msg.RawToken()) == 0 {
+		if len(msg.Token) == 0 {
 			msg.ErrorRequest(&request.ErrorStatusUnauthorized)
 			return
 		}
 
-		rErr := s.Request(rids.Route().ValidateToken(), request.NewRequest(msg.RawToken()), nil)
+		rErr := s.Request(rids.Route().ValidateToken(), nil, nil, msg.Token)
 		if rErr != nil {
 			msg.ErrorRequest(&request.ErrorStatusUnauthorized)
 			return
@@ -199,7 +199,7 @@ func (s *KafkaConn) newMessage(monitor bool, m *kafka.Message, p *rids.Pattern, 
 			req.Query = msg.Query
 		}
 
-		rErr = s.Request(rids.Route().UserHavePermission(), req, nil, msg.RawToken())
+		rErr = s.Request(rids.Route().UserHavePermission(), req, nil, msg.Token)
 		if rErr != nil {
 			msg.ErrorRequest(rErr)
 			return
@@ -260,7 +260,7 @@ func (s KafkaConn) RegisterMonitor(p *rids.Pattern) error {
 	return nil
 }
 
-func (s KafkaConn) Publish(p *rids.Pattern, payload *request.CallRequest, token ...json.RawMessage) error {
+func (s KafkaConn) Publish(p *rids.Pattern, payload *request.CallRequest, token ...string) error {
 	if payload == nil {
 		payload = request.EmptyRequest()
 	}
@@ -272,7 +272,7 @@ func (s KafkaConn) Publish(p *rids.Pattern, payload *request.CallRequest, token 
 		}
 		payload.Query = string(query)
 	}
-	if len(token) > 0 && token[0] != nil && len(token[0]) > 0 {
+	if len(token) > 0 && token[0] != "" && len(token[0]) > 0 {
 		payload.Token = string(token[0])
 	}
 	specific := p.EndpointName()
@@ -328,11 +328,11 @@ func (s KafkaConn) PublishRaw(subject string, data json.RawMessage) error {
 	return s.publish(subject, data)
 }
 
-func (s KafkaConn) Get(p *rids.Pattern, rs interface{}, token ...json.RawMessage) *request.ErrorRequest {
+func (s KafkaConn) Get(p *rids.Pattern, rs interface{}, token ...string) *request.ErrorRequest {
 	return s.Request(p, nil, rs, token...)
 }
 
-func (s KafkaConn) Request(p *rids.Pattern, payload *request.CallRequest, rs interface{}, token ...json.RawMessage) *request.ErrorRequest {
+func (s KafkaConn) Request(p *rids.Pattern, payload *request.CallRequest, rs interface{}, token ...string) *request.ErrorRequest {
 	if payload == nil {
 		payload = &request.CallRequest{}
 	}
@@ -350,8 +350,8 @@ func (s KafkaConn) Request(p *rids.Pattern, payload *request.CallRequest, rs int
 		}
 		payload.Query = string(query)
 	}
-	if len(token) > 0 && token[0] != nil && len(token[0]) > 0 {
-		payload.Token = string(token[0])
+	if len(token) > 0 && token[0] != "" && len(token[0]) > 0 {
+		payload.Token = token[0]
 	}
 
 	// Check dependencies
@@ -412,9 +412,9 @@ func (s *KafkaConn) RequestRaw(subject string, data json.RawMessage, overrideTim
 	}()
 
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
-		"bootstrap.servers":        s.config.KafkaURL,
-		"group.id":                 strings.Split(subject, ".")[0],
-		"auto.offset.reset":        "earliest",
+		"bootstrap.servers": s.config.KafkaURL,
+		"group.id":          strings.Split(subject, ".")[0],
+		"auto.offset.reset": "earliest",
 		//"go.events.channel.enable": true,
 	})
 

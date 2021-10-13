@@ -1,7 +1,6 @@
 package socket
 
 import (
-	"encoding/json"
 	"github.com/spike-events/spike-broker/pkg/rids"
 	"github.com/spike-events/spike-broker/pkg/service/request"
 )
@@ -11,16 +10,19 @@ type WSMessageToken struct {
 }
 
 func (t *WSMessageToken) Handle(ws *WSConnection) *request.ErrorRequest {
-	var result json.RawMessage
-	err := ws.Broker().Request(rids.Route().ValidateToken(), request.NewRequest(t.Token), &result)
+	type rs struct {
+		Token string
+	}
+	var result rs
+	err := ws.Broker().Request(rids.Route().ValidateToken(), nil, &result, t.Token)
 	if err != nil {
 		return &request.ErrorStatusUnauthorized
 	}
 
-	publish := ws.GetSessionToken() == nil
-	ws.SetSessionToken(result)
+	publish := ws.GetSessionToken() == ""
+	ws.SetSessionToken(result.Token)
 	ws.SetSessionID(t.ID)
-	t.Token = string(result)
+	t.Token = result.Token
 	ws.WSConnection().WriteJSON(t)
 	if publish {
 		go ws.Broker().Publish(rids.Route().EventSocketConnected(), request.NewRequest(ws), ws.GetSessionToken())

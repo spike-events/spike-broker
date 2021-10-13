@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"github.com/spike-events/spike-broker/pkg/utils"
 	"net/http"
 	"strings"
@@ -67,13 +66,13 @@ func AuthMiddleware(oauth ...*service.AuthRid) func(http.Handler) http.Handler {
 						return
 					}
 
-					var processedToken json.RawMessage
-					processedToken, ok = auth.Auth.ValidateToken([]byte(rawToken))
+					var processedToken string
+					processedToken, ok = auth.Auth.ValidateToken(rawToken)
 					if !ok {
 						w.WriteHeader(http.StatusUnauthorized)
 						return
 					}
-					r.Header.Set("token", string(processedToken))
+					r.Header.Set("token", processedToken)
 				} else {
 					rawToken, _ := utils.GetBearer(r)
 					r.Header.Set("token", rawToken)

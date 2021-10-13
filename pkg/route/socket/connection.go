@@ -2,7 +2,6 @@ package socket
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/gofrs/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/spike-events/spike-broker/pkg/service"
@@ -21,7 +20,7 @@ type WSConnection struct {
 	route     *service.Service
 	provider  request.Provider
 	auth      []*service.AuthRid
-	token     json.RawMessage
+	token     string
 }
 
 func (ws *WSConnection) Context() context.Context {
@@ -39,11 +38,11 @@ func (ws *WSConnection) Broker() request.Provider {
 	return ws.provider
 }
 
-func (ws *WSConnection) GetSessionToken() json.RawMessage {
+func (ws *WSConnection) GetSessionToken() string {
 	return ws.token
 }
 
-func (ws *WSConnection) SetSessionToken(token json.RawMessage) {
+func (ws *WSConnection) SetSessionToken(token string) {
 	ws.token = token
 }
 

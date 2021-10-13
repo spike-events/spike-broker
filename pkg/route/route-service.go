@@ -99,11 +99,14 @@ func (s *routeService) validateToken(r *request.CallRequest) {
 		log.Printf("route: validating token")
 	}
 	if len(s.auths) > 0 {
-		if processed, ok := s.auths[0].Auth.ValidateToken(r.Data); ok {
+		if processed, ok := s.auths[0].Auth.ValidateToken(r.Token); ok {
 			if os.Getenv("API_LOG_LEVEL") == "DEBUG" {
 				log.Printf("route: token validated")
 			}
-			r.OK(processed)
+			type rs struct {
+				Token string
+			}
+			r.OK(rs{processed})
 			return
 		}
 	}
