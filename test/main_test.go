@@ -166,7 +166,7 @@ type auth struct {
 	*service.Base
 }
 
-func (s *auth) ValidateToken(token json.RawMessage) (json.RawMessage, bool) {
+func (s *auth) ValidateToken(token string) (string, bool) {
 	return token, true
 }
 
