@@ -81,10 +81,6 @@ func (c *CallRequest) ParseToken(t interface{}) {
 	}
 }
 
-func (c *CallRequest) RawToken() json.RawMessage {
-	return []byte(c.Token)
-}
-
 func (c *CallRequest) SetProvider(provider Provider) {
 	c.provider = provider
 }
@@ -127,8 +123,6 @@ func NewRequest(data interface{}) *CallRequest {
 	case []byte:
 		panic("invalid data")
 	case nil:
-	case string:
-		payload = []byte(fmt.Sprint(data))
 	default:
 		data = utils.PointerFromInterface(data)
 		payload, err = json.Marshal(data)

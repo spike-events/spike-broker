@@ -141,12 +141,12 @@ func (s *SpikeConn) newMessage(monitor bool, m *client.Message, p *rids.Pattern,
 	}
 
 	if p.Authenticated {
-		if len(msg.RawToken()) == 0 {
+		if len(msg.Token) == 0 {
 			msg.ErrorRequest(&request.ErrorStatusUnauthorized)
 			return
 		}
 
-		rErr := s.Request(rids.Route().ValidateToken(), request.NewRequest(msg.RawToken()), nil)
+		rErr := s.Request(rids.Route().ValidateToken(), nil, nil, msg.Token)
 		if rErr != nil {
 			msg.ErrorRequest(&request.ErrorStatusUnauthorized)
 			return
@@ -158,7 +158,7 @@ func (s *SpikeConn) newMessage(monitor bool, m *client.Message, p *rids.Pattern,
 			Method:   p.Method,
 		})
 
-		req.Token = string(msg.RawToken())
+		req.Token = msg.Token
 		req.Form = msg.Form
 		req.Params = msg.Params
 
@@ -166,7 +166,7 @@ func (s *SpikeConn) newMessage(monitor bool, m *client.Message, p *rids.Pattern,
 			req.Query = msg.Query
 		}
 
-		rErr = s.Request(rids.Route().UserHavePermission(), req, nil, msg.RawToken())
+		rErr = s.Request(rids.Route().UserHavePermission(), req, nil, msg.Token)
 		if rErr != nil {
 			msg.ErrorRequest(rErr)
 			return
@@ -227,7 +227,7 @@ func (s SpikeConn) RegisterMonitor(p *rids.Pattern) error {
 	return nil
 }
 
-func (s SpikeConn) Publish(p *rids.Pattern, payload *request.CallRequest, token ...json.RawMessage) error {
+func (s SpikeConn) Publish(p *rids.Pattern, payload *request.CallRequest, token ...string) error {
 	if payload == nil {
 		payload = request.EmptyRequest()
 	}
@@ -239,8 +239,8 @@ func (s SpikeConn) Publish(p *rids.Pattern, payload *request.CallRequest, token 
 		}
 		payload.Query = string(query)
 	}
-	if len(token) > 0 && token[0] != nil && len(token[0]) > 0 {
-		payload.Token = string(token[0])
+	if len(token) > 0 && len(token[0]) > 0 {
+		payload.Token = token[0]
 	}
 	specific := p.EndpointName()
 	for key, vl := range p.Params {
@@ -276,11 +276,11 @@ func (s SpikeConn) PublishRaw(subject string, data json.RawMessage) error {
 	return s.publish(subject, data, nil)
 }
 
-func (s SpikeConn) Get(p *rids.Pattern, rs interface{}, token ...json.RawMessage) *request.ErrorRequest {
+func (s SpikeConn) Get(p *rids.Pattern, rs interface{}, token ...string) *request.ErrorRequest {
 	return s.Request(p, nil, rs, token...)
 }
 
-func (s SpikeConn) Request(p *rids.Pattern, payload *request.CallRequest, rs interface{}, token ...json.RawMessage) *request.ErrorRequest {
+func (s SpikeConn) Request(p *rids.Pattern, payload *request.CallRequest, rs interface{}, token ...string) *request.ErrorRequest {
 	if payload == nil {
 		payload = &request.CallRequest{}
 	}
@@ -298,7 +298,7 @@ func (s SpikeConn) Request(p *rids.Pattern, payload *request.CallRequest, rs int
 		}
 		payload.Query = string(query)
 	}
-	if len(token) > 0 && token[0] != nil && len(token[0]) > 0 {
+	if len(token) > 0 && token[0] != "" && len(token[0]) > 0 {
 		payload.Token = string(token[0])
 	}
 
