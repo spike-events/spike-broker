@@ -372,8 +372,8 @@ github.com/sony/gobreaker v0.4.1/go.mod h1:ZKptC7FHNvhBz7dN2LGjPVBz2sZJmc0/PkyDJ
 github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72/go.mod h1:JwIasOWyU6f++ZhiEuf87xNszmSA2myDM2Kzu9HwQUA=
 github.com/spf13/cobra v0.0.3/go.mod h1:1l0Ry5zgKvJasoi3XT1TypsSe7PqH0Sj9dhYf7v3XqQ=
 github.com/spf13/pflag v1.0.1/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnInEg4=
-github.com/spike-events/spike-events v0.1.6 h1:3VHxRAT1tCenE8P2LT72VX8Rn/VtPLpZaoZgq5V5Ip0=
-github.com/spike-events/spike-events v0.1.6/go.mod h1:BfRt5gT/dA29aJCsgH45ZtAUlfSk3uuvEVrEY/rMP4w=
+github.com/spike-events/spike-events v0.2.0 h1:L+FW9vho+wBB+eHA+1RNlsAygIq78esgFbwOVAbr41M=
+github.com/spike-events/spike-events v0.2.0/go.mod h1:BfRt5gT/dA29aJCsgH45ZtAUlfSk3uuvEVrEY/rMP4w=
 github.com/streadway/amqp v0.0.0-20190404075320-75d898a42a94/go.mod h1:AZpEONHx3DKn8O/DFsRAY58/XVQiIPMTMB1SddzLXVw=
 github.com/streadway/amqp v0.0.0-20190827072141-edfb9018d271/go.mod h1:AZpEONHx3DKn8O/DFsRAY58/XVQiIPMTMB1SddzLXVw=
 github.com/streadway/handy v0.0.0-20190108123426-d5acb3125c2a/go.mod h1:qNTQ5P5JnDBl6z3cMAg/SywNDC5ABu5ApDIw6lUbRmI=
