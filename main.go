@@ -155,6 +155,7 @@ var defaultNatsOptions = server.Options{
 	Host:       "127.0.0.1",
 	Port:       4222,
 	MaxPayload: 100 * 1024 * 1024,
+	MaxPending: 100 * 1024 * 1024,
 }
 
 // RunDefaultServer starts a new Go routine based server using the default options
