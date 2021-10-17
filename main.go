@@ -141,10 +141,12 @@ func NewProxyServer(db *gorm.DB, services []HandlerService, handlerAuth HandlerA
 
 		// Wait for context completion
 		<-ctx.Done()
-
+		log.Printf("main: waiting for services to shutdown...")
+		routerService.Stop()
 		for _, s := range startedList {
 			s.Stop()
 		}
+		log.Printf("main: all services stopped")
 	}()
 
 	return
