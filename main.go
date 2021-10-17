@@ -1,4 +1,4 @@
-package apiproxynats
+package spikebroker
 
 import (
 	"context"

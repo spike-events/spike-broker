@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/gofrs/uuid"
 	"github.com/nats-io/nats.go"
-	apiproxynats "github.com/spike-events/spike-broker"
+	"github.com/spike-events/spike-broker"
 	"github.com/spike-events/spike-broker/pkg/models"
 	"github.com/spike-events/spike-broker/pkg/providers"
 	"github.com/spike-events/spike-broker/pkg/rids"
@@ -191,14 +191,14 @@ func TestService(t *testing.T) {
 		},
 	}
 
-	services := []apiproxynats.HandlerService{
+	services := []spikebroker.HandlerService{
 		NewOtherConfigService,
 		NewConfigService,
 	}
 
 	os.Remove("gorm.db")
 	db, err := gorm.Open(sqlite.Open("gorm.db"), &gorm.Config{})
-	_, connected, err := apiproxynats.NewProxyServer(db, services,
+	_, connected, err := spikebroker.NewProxyServer(db, services,
 		func(db *gorm.DB, key uuid.UUID) service.Auth {
 			return &auth{}
 		}, options)

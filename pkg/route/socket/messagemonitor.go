@@ -16,10 +16,15 @@ type WSMessageMonitor struct {
 func (m *WSMessageMonitor) Handle(ws *WSConnection) *request.ErrorRequest {
 
 	if len(ws.token) != 0 {
-		rErr := ws.Broker().Request(rids.Route().ValidateToken(), nil, nil, ws.token)
+		type rs struct {
+			Token string
+		}
+		var result rs
+		rErr := ws.Broker().Request(rids.Route().ValidateToken(), nil, &result, ws.token)
 		if rErr != nil {
 			return rErr
 		}
+		ws.token = result.Token
 	}
 
 	values := strings.Split(m.Endpoint, ".")
