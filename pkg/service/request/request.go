@@ -66,11 +66,11 @@ type CallRequest struct {
 
 // ErrorRequest error request
 type ErrorRequest struct {
-	Message      string
-	Code         int
-	Error        error
-	ErrorMessage string
-	Data         json.RawMessage
+	Message      string          `json:"message,omitempty"`
+	Code         int             `json:"code,omitempty"`
+	Error        error           `json:"error,omitempty"`
+	ErrorMessage string          `json:"errorMessage,omitempty"`
+	Data         json.RawMessage `json:"data,omitempty"`
 }
 
 // ParseToken logado
