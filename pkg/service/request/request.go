@@ -279,10 +279,11 @@ func (c *CallRequest) ErrorRequest(err *ErrorRequest, msg ...string) {
 	if err == nil {
 		panic("error request cant be nil")
 	}
+	errCopy := *err
 	if len(msg) > 0 {
-		err.Message = msg[0]
+		errCopy.Message = msg[0]
 	}
-	c.error(*err)
+	c.error(errCopy)
 }
 
 // Timeout informs the max timeout for this request

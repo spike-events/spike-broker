@@ -190,11 +190,16 @@ func (s *NatsConn) subscribe(p *rids.Pattern,
 				return
 			}
 
-			rErr := s.Request(rids.Route().ValidateToken(), nil, nil, msg.Token)
+			type rs struct {
+				Token string
+			}
+			var result rs
+			rErr := s.Request(rids.Route().ValidateToken(), nil, &result, msg.Token)
 			if rErr != nil {
 				msg.ErrorRequest(&request.ErrorStatusUnauthorized)
 				return
 			}
+			msg.Token = result.Token
 
 			req := request.NewRequest(models.HavePermissionRequest{
 				Service:  p.Service,
@@ -202,7 +207,7 @@ func (s *NatsConn) subscribe(p *rids.Pattern,
 				Method:   p.Method,
 			})
 
-			req.Token = string(msg.Token)
+			req.Token = msg.Token
 			req.Form = msg.Form
 			req.Params = msg.Params
 

@@ -1,6 +1,7 @@
 package route
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -129,6 +130,12 @@ func (s *routeService) handler(endpoint rids.EndpointRest, w http.ResponseWriter
 
 	if dataURL.ContentType() != "" && len(dataURL.Data) > 0 {
 		w.Header().Set("Content-Type", dataURL.ContentType())
+		w.Header().Set("ETag", fmt.Sprintf("%x", sha256.Sum256(dataURL.Data)))
+		if len(dataURL.Params) > 0 {
+			if filename, ok := dataURL.Params["filename"]; ok {
+				w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=\"%s\"", filename))
+			}
+		}
 		w.WriteHeader(http.StatusOK)
 		w.Write(dataURL.Data)
 		return
