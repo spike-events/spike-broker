@@ -224,16 +224,20 @@ func (s *NatsConn) subscribe(p *rids.Pattern,
 
 		// local access
 		if len(access) > 0 {
+			for _, accessPart := range access {
+				acr := request.AccessRequest{
+					CallRequest: msg,
+				}
+				accessPart(&acr)
+				if acr.IsError() {
+					msg.ErrorRequest(&request.ErrorStatusForbidden)
+					return
+				}
+			}
+
 			acr := request.AccessRequest{
 				CallRequest: msg,
 			}
-
-			access[0](&acr)
-			if acr.IsError() {
-				msg.ErrorRequest(&request.ErrorStatusForbidden)
-				return
-			}
-
 			if acr.RequestIsGet() != nil && *acr.RequestIsGet() && p.Method != "GET" {
 				msg.ErrorRequest(&request.ErrorStatusForbidden)
 				return
