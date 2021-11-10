@@ -156,8 +156,7 @@ func (s *NatsConn) subscribe(pattern *rids.Pattern,
 	hc func(msg *request.CallRequest),
 	access ...func(msg *request.AccessRequest)) (string, string, chan *nats.Msg) {
 
-	p := *pattern
-	handler := func(m *nats.Msg) {
+	handler := func(p *rids.Pattern, m *nats.Msg) {
 		bus := s.requestConn()
 		defer s.releaseConn(bus)
 		defer func() {
@@ -225,16 +224,20 @@ func (s *NatsConn) subscribe(pattern *rids.Pattern,
 
 		// local access
 		if len(access) > 0 {
+			for _, accessPart := range access {
+				acr := request.AccessRequest{
+					CallRequest: msg,
+				}
+				accessPart(&acr)
+				if acr.IsError() {
+					msg.ErrorRequest(&request.ErrorStatusForbidden)
+					return
+				}
+			}
+
 			acr := request.AccessRequest{
 				CallRequest: msg,
 			}
-
-			access[0](&acr)
-			if acr.IsError() {
-				msg.ErrorRequest(&request.ErrorStatusForbidden)
-				return
-			}
-
 			if acr.RequestIsGet() != nil && *acr.RequestIsGet() && p.Method != "GET" {
 				msg.ErrorRequest(&request.ErrorStatusForbidden)
 				return
@@ -260,9 +263,10 @@ func (s *NatsConn) subscribe(pattern *rids.Pattern,
 	//running := make(chan bool, 0)
 
 	go func() {
-		//running <- true
+		var p rids.Pattern
+		p = *pattern
 		for msg := range msgs {
-			go handler(msg)
+			go handler(&p, msg)
 		}
 		s.printDebug("nats: channel closed on endpoint %s", p.EndpointName())
 	}()
@@ -270,8 +274,8 @@ func (s *NatsConn) subscribe(pattern *rids.Pattern,
 	//<-running
 	//close(running)
 
-	s.printDebug("nats: subscribed on %s\n", p.EndpointName())
-	return p.EndpointName(), p.EndpointName(), msgs
+	s.printDebug("nats: subscribed on %s\n", pattern.EndpointName())
+	return pattern.EndpointName(), pattern.EndpointName(), msgs
 }
 
 // Subscribe endpoint nats in balanced mode
