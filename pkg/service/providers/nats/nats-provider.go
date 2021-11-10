@@ -152,10 +152,11 @@ func (s *NatsConn) printDebug(str string, params ...interface{}) {
 	}
 }
 
-func (s *NatsConn) subscribe(p *rids.Pattern,
+func (s *NatsConn) subscribe(pattern *rids.Pattern,
 	hc func(msg *request.CallRequest),
 	access ...func(msg *request.AccessRequest)) (string, string, chan *nats.Msg) {
 
+	p := *pattern
 	handler := func(m *nats.Msg) {
 		bus := s.requestConn()
 		defer s.releaseConn(bus)
