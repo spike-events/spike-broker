@@ -233,23 +233,19 @@ func (s *NatsConn) subscribe(pattern *rids.Pattern,
 					msg.ErrorRequest(&request.ErrorStatusForbidden)
 					return
 				}
-			}
-
-			acr := request.AccessRequest{
-				CallRequest: msg,
-			}
-			if acr.RequestIsGet() != nil && *acr.RequestIsGet() && p.Method != "GET" {
-				msg.ErrorRequest(&request.ErrorStatusForbidden)
-				return
-			}
-			if acr.RequestIsGet() != nil && !*acr.RequestIsGet() {
-				match := false
-				for _, m := range acr.Methods() {
-					match = match || strings.Contains(p.EndpointName(), m)
-				}
-				if !match {
+				if acr.RequestIsGet() != nil && *acr.RequestIsGet() && p.Method != "GET" {
 					msg.ErrorRequest(&request.ErrorStatusForbidden)
 					return
+				}
+				if acr.RequestIsGet() != nil && !*acr.RequestIsGet() {
+					match := false
+					for _, m := range acr.Methods() {
+						match = match || strings.Contains(p.EndpointName(), m)
+					}
+					if !match {
+						msg.ErrorRequest(&request.ErrorStatusForbidden)
+						return
+					}
 				}
 			}
 		}

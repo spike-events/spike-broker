@@ -180,28 +180,30 @@ func (s *SpikeConn) newMessage(monitor bool, m *client.Message, p *rids.Pattern,
 
 	// local access
 	if len(access) > 0 {
-		acr := request.AccessRequest{
-			CallRequest: msg,
-		}
-
-		access[0](&acr)
-		if acr.IsError() {
-			msg.ErrorRequest(&request.ErrorStatusForbidden)
-			return
-		}
-
-		if acr.RequestIsGet() != nil && *acr.RequestIsGet() && p.Method != "GET" {
-			msg.ErrorRequest(&request.ErrorStatusForbidden)
-			return
-		}
-		if acr.RequestIsGet() != nil && !*acr.RequestIsGet() {
-			match := false
-			for _, m := range acr.Methods() {
-				match = match || strings.Contains(p.EndpointName(), m)
+		for _, accessPart := range access {
+			acr := request.AccessRequest{
+				CallRequest: msg,
 			}
-			if !match {
+
+			accessPart(&acr)
+			if acr.IsError() {
 				msg.ErrorRequest(&request.ErrorStatusForbidden)
 				return
+			}
+
+			if acr.RequestIsGet() != nil && *acr.RequestIsGet() && p.Method != "GET" {
+				msg.ErrorRequest(&request.ErrorStatusForbidden)
+				return
+			}
+			if acr.RequestIsGet() != nil && !*acr.RequestIsGet() {
+				match := false
+				for _, m := range acr.Methods() {
+					match = match || strings.Contains(p.EndpointName(), m)
+				}
+				if !match {
+					msg.ErrorRequest(&request.ErrorStatusForbidden)
+					return
+				}
 			}
 		}
 	}
