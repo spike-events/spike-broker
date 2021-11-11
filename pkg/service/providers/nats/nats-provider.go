@@ -287,6 +287,8 @@ func (s *NatsConn) subscribe(pattern *rids.Pattern,
 func (s *NatsConn) Subscribe(p *rids.Pattern,
 	hc func(msg *request.CallRequest),
 	access ...func(msg *request.AccessRequest)) (interface{}, error) {
+	m.Lock()
+	defer m.Unlock()
 	subj, grp, msgs := s.subscribe(p, hc, access...)
 	reg, _ := regexp.Compile("\\$[^.]+")
 	subj = reg.ReplaceAllString(subj, "*")
@@ -308,6 +310,8 @@ func (s *NatsConn) Subscribe(p *rids.Pattern,
 func (s *NatsConn) SubscribeAll(p *rids.Pattern,
 	hc func(msg *request.CallRequest),
 	access ...func(msg *request.AccessRequest)) (interface{}, error) {
+	m.Lock()
+	defer m.Unlock()
 	bus := s.requestConn()
 	defer s.releaseConn(bus)
 	subj, _, ch := s.subscribe(p, hc, access...)
@@ -321,6 +325,8 @@ func (s *NatsConn) Monitor(monitoringGroup string,
 	p *rids.Pattern,
 	hc func(msg *request.CallRequest),
 	access ...func(msg *request.AccessRequest)) (func(), error) {
+	m.Lock()
+	m.Unlock()
 	specific := p.EndpointName()
 	for key, vl := range p.Params {
 		specific = strings.ReplaceAll(specific, "$"+key, vl)
