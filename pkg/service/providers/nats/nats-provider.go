@@ -267,11 +267,9 @@ func (s *NatsConn) subscribe(pattern *rids.Pattern,
 		p = *pattern
 		for msg := range msgs {
 			receivedMsg := msg
-			go func() {
-				s.printDebug("nats: received message with pattern %s on subject %s",
-					p.EndpointName(), receivedMsg.Subject)
-				handler(&p, receivedMsg)
-			}()
+			if receivedMsg.Subject == p.EndpointName() {
+				go handler(&p, receivedMsg)
+			}
 		}
 		s.printDebug("nats: channel closed on endpoint %s", p.EndpointName())
 	}()
