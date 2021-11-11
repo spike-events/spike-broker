@@ -262,14 +262,11 @@ func (s *NatsConn) subscribe(pattern *rids.Pattern,
 	msgs := make(chan *nats.Msg, NATSMaxChans)
 	//running := make(chan bool, 0)
 
+	p := *pattern
 	go func() {
-		var p rids.Pattern
-		p = *pattern
 		for msg := range msgs {
 			receivedMsg := msg
-			if receivedMsg.Subject == p.EndpointName() {
-				go handler(&p, receivedMsg)
-			}
+			go handler(&p, receivedMsg)
 		}
 		s.printDebug("nats: channel closed on endpoint %s", p.EndpointName())
 	}()
