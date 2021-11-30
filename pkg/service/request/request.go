@@ -339,14 +339,14 @@ func (c *CallRequest) ParseQuery(q interface{}) error {
 
 // information already exists
 var (
-	ErrorInformationAlreadyExists = ErrorRequest{"information already exists", http.StatusAlreadyReported, fmt.Errorf("information already exists"), "", nil}
-	ErrorNotFound                 = ErrorRequest{"not found", http.StatusNotFound, fmt.Errorf("not found"), "", nil}
-	ErrorStatusUnauthorized       = ErrorRequest{"not authorized", http.StatusUnauthorized, fmt.Errorf("not authorized"), "", nil}
-	ErrorStatusForbidden          = ErrorRequest{"forbidden", http.StatusForbidden, fmt.Errorf("forbidden"), "", nil}
-	ErrorInvalidParams            = ErrorRequest{"invalid params", http.StatusBadRequest, fmt.Errorf("invalid params"), "", nil}
-	ErrorInternalServerError      = ErrorRequest{"internal error", http.StatusInternalServerError, fmt.Errorf("internal error"), "", nil}
-	ErrorAccessDenied             = ErrorRequest{"access denied", http.StatusUnauthorized, fmt.Errorf("access denied"), "", nil}
-	ErrorTimeout                  = ErrorRequest{"timeout", http.StatusRequestTimeout, fmt.Errorf("timeout"), "", nil}
+	ErrorInformationAlreadyExists = ErrorRequest{"information already exists", http.StatusAlreadyReported, fmt.Errorf("information already exists"), "", nil, ""}
+	ErrorNotFound                 = ErrorRequest{"not found", http.StatusNotFound, fmt.Errorf("not found"), "", nil, ""}
+	ErrorStatusUnauthorized       = ErrorRequest{"not authorized", http.StatusUnauthorized, fmt.Errorf("not authorized"), "", nil, ""}
+	ErrorStatusForbidden          = ErrorRequest{"forbidden", http.StatusForbidden, fmt.Errorf("forbidden"), "", nil, ""}
+	ErrorInvalidParams            = ErrorRequest{"invalid params", http.StatusBadRequest, fmt.Errorf("invalid params"), "", nil, ""}
+	ErrorInternalServerError      = ErrorRequest{"internal error", http.StatusInternalServerError, fmt.Errorf("internal error"), "", nil, ""}
+	ErrorAccessDenied             = ErrorRequest{"access denied", http.StatusUnauthorized, fmt.Errorf("access denied"), "", nil, ""}
+	ErrorTimeout                  = ErrorRequest{"timeout", http.StatusRequestTimeout, fmt.Errorf("timeout"), "", nil, ""}
 )
 
 // Error result
