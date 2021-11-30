@@ -71,6 +71,7 @@ type ErrorRequest struct {
 	Error        error           `json:"error,omitempty"`
 	ErrorMessage string          `json:"errorMessage,omitempty"`
 	Data         json.RawMessage `json:"data,omitempty"`
+	Type         string          `json:"type,omitempty"`
 }
 
 // ParseToken logado
@@ -270,8 +271,11 @@ func (c *CallRequest) OK(result ...interface{}) {
 }
 
 // Error result
-func (c *CallRequest) Error(err error) {
-	c.error(ErrorRequest{err.Error(), http.StatusInternalServerError, err, err.Error(), nil})
+func (c *CallRequest) Error(err error, typeError ...string) {
+	if len(typeError) == 0 {
+		typeError = append(typeError, "")
+	}
+	c.error(ErrorRequest{err.Error(), http.StatusInternalServerError, err, err.Error(), nil, typeError[0]})
 }
 
 // ErrorRequest result
