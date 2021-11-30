@@ -62,6 +62,7 @@ type CallRequest struct {
 	Token    string
 	Query    string
 	Endpoint string
+	Header   http.Header
 }
 
 // ErrorRequest error request

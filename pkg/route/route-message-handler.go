@@ -59,6 +59,7 @@ func (s *routeService) handler(endpoint rids.EndpointRest, w http.ResponseWriter
 		Form:     r.Form,
 		PostForm: r.PostForm,
 		Endpoint: endpoint.Endpoint,
+		Header:   r.Header,
 	}
 
 	if len(token) > 0 {
