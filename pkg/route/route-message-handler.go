@@ -126,6 +126,14 @@ func (s *routeService) handler(endpoint rids.EndpointRest, w http.ResponseWriter
 		return
 	}
 
+	var redirect request.RedirectRequest
+	json.Unmarshal(result, &redirect)
+
+	if redirect.URL != "" {
+		http.Redirect(w, r, redirect.URL, http.StatusMovedPermanently)
+		return
+	}
+
 	var dataURL dataurl.DataURL
 	json.Unmarshal(parsedResponse.Data, &dataURL)
 

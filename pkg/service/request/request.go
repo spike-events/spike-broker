@@ -75,12 +75,23 @@ type ErrorRequest struct {
 	Type         string          `json:"type,omitempty"`
 }
 
+type RedirectRequest struct {
+	URL string
+}
+
 // ParseToken logado
 func (c *CallRequest) ParseToken(t interface{}) {
 	token := c.Token
 	if len(token) > 0 {
 		json.Unmarshal([]byte(token), &t)
 	}
+}
+
+func (c *CallRequest) Redirect(url string) {
+	payload, _ := json.Marshal(RedirectRequest{
+		URL: url,
+	})
+	c.provider.PublishRaw(c.reply, payload)
 }
 
 func (c *CallRequest) SetProvider(provider Provider) {
