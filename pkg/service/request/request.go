@@ -3,6 +3,7 @@ package request
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gofrs/uuid"
 	"github.com/hetiansu5/urlquery"
 	"github.com/spike-events/spike-broker/pkg/utils"
 	"github.com/vincent-petithory/dataurl"
@@ -63,6 +64,8 @@ type CallRequest struct {
 	Query    string
 	Endpoint string
 	Header   http.Header
+
+	TransactionSaga uuid.UUID
 }
 
 // ErrorRequest error request
@@ -129,7 +132,7 @@ func EmptyRequest() *CallRequest {
 }
 
 // NewRequest nova instancia da call request
-func NewRequest(data interface{}) *CallRequest {
+func NewRequest(data interface{}, transactionSaga ...uuid.UUID) *CallRequest {
 	var payload []byte
 	var err error
 	switch data.(type) {
@@ -143,16 +146,20 @@ func NewRequest(data interface{}) *CallRequest {
 			panic(err)
 		}
 	}
-
+	if len(transactionSaga) == 0 {
+		id, _ := uuid.NewV4()
+		transactionSaga = append(transactionSaga, id)
+	}
 	// Make sure we always handle pointers
 	return &CallRequest{
-		Params: nil,
-		Data:   payload,
+		Params:          nil,
+		Data:            payload,
+		TransactionSaga: transactionSaga[0],
 	}
 }
 
 // CloneRequest clone request
-func (c CallRequest) CloneRequest(data interface{}) *CallRequest {
+func (c CallRequest) CloneRequest(data interface{}, transactionSaga ...uuid.UUID) *CallRequest {
 	switch data.(type) {
 	case []byte:
 		panic("invalid data")
@@ -161,6 +168,13 @@ func (c CallRequest) CloneRequest(data interface{}) *CallRequest {
 	c.Data, err = json.Marshal(data)
 	if err != nil {
 		panic(err)
+	}
+	if c.TransactionSaga == uuid.Nil {
+		if len(transactionSaga) == 0 {
+			id, _ := uuid.NewV4()
+			transactionSaga = append(transactionSaga, id)
+		}
+		c.TransactionSaga = transactionSaga[0]
 	}
 	return &c
 }

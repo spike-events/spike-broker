@@ -4,8 +4,11 @@ import (
 	"container/ring"
 	"encoding/json"
 	"fmt"
+	"github.com/gofrs/uuid"
 	"github.com/hetiansu5/urlquery"
 	"github.com/spike-events/spike-broker/pkg/service/request"
+	"github.com/spike-events/spike-broker/pkg/utils"
+	"gorm.io/gorm"
 	"log"
 	"net/http"
 	"os"
@@ -47,6 +50,7 @@ type Config int
 type NatsConn struct {
 	natsURL string
 	debug   bool
+	db      *gorm.DB
 }
 
 func (s *NatsConn) connError(con *nats.Conn, err error) {
@@ -79,9 +83,10 @@ func (s *NatsConn) newNatsBus() (*nats.Conn, error) {
 	return bus, nil
 }
 
-func NewNatsConn(natsURL string, configs ...Config) *NatsConn {
+func NewNatsConn(db *gorm.DB, natsURL string, configs ...Config) *NatsConn {
 	natsConn := &NatsConn{
 		natsURL: natsURL,
+		db:      db,
 	}
 
 	for _, config := range configs {
@@ -251,6 +256,9 @@ func (s *NatsConn) subscribe(pattern *rids.Pattern,
 		}
 
 		s.printDebug("nats: calling handler for endpoint %s inbox %s", p.EndpointName(), m.Reply)
+		if msg.TransactionSaga != uuid.Nil {
+			s.db.Create(&models.TransactionSaga{TransactionSagaID: msg.TransactionSaga, GoID: utils.GoID()})
+		}
 		hc(msg)
 		s.printDebug("nats: after calling handler for endpoint %s inbox %s", p.EndpointName(), m.Reply)
 	}

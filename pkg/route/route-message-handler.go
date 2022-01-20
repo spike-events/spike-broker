@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"github.com/gofrs/uuid"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -53,13 +54,15 @@ func (s *routeService) handler(endpoint rids.EndpointRest, w http.ResponseWriter
 		}
 	}
 	token := r.Header.Get("token")
+	transactionSaga, _ := uuid.NewV4()
 	call := request.CallRequest{
-		Data:     data,
-		Params:   params,
-		Form:     r.Form,
-		PostForm: r.PostForm,
-		Endpoint: endpoint.Endpoint,
-		Header:   r.Header,
+		Data:            data,
+		Params:          params,
+		Form:            r.Form,
+		PostForm:        r.PostForm,
+		Endpoint:        endpoint.Endpoint,
+		Header:          r.Header,
+		TransactionSaga: transactionSaga,
 	}
 
 	if len(token) > 0 {

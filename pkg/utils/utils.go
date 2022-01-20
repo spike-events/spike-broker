@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"runtime"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -116,6 +117,17 @@ func GetBearer(r *http.Request) (accessToken string, ok bool) {
 	}
 
 	return
+}
+
+func GoID() int {
+	var buf [64]byte
+	n := runtime.Stack(buf[:], false)
+	idField := strings.Fields(strings.TrimPrefix(string(buf[:n]), "goroutine "))[0]
+	id, err := strconv.Atoi(idField)
+	if err != nil {
+		panic(fmt.Sprintf("cannot get goroutine id: %v", err))
+	}
+	return id
 }
 
 func PointerFromInterface(data interface{}) interface{} {

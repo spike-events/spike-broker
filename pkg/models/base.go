@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/spike-events/spike-broker/pkg/providers"
+	"github.com/spike-events/spike-broker/pkg/utils"
 	"os"
 	"time"
 
@@ -73,14 +74,47 @@ type Base struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
-// BeforeCreate will set a UUID rather than numeric ID.
-func (base *Base) BeforeCreate(_ *gorm.DB) error {
+func (base *Base) BeforeCreate(tx *gorm.DB) error {
 	if base.ID == uuid.Nil {
 		nonce, err := uuid.NewV4()
 		if err != nil {
 			return err
 		}
 		base.ID = nonce
+	}
+	tx.Create(&TransactionSagaRow{
+		CreatedAt: time.Now(),
+		GoID:      utils.GoID(),
+		Table:     tx.Statement.Table,
+		RowID:     base.ID,
+		Type:      "INSERT",
+	})
+	return nil
+}
+
+func (base *Base) BeforeSave(tx *gorm.DB) error {
+	typeSave := "UPDATE"
+	if base.ID == uuid.Nil {
+		nonce, err := uuid.NewV4()
+		if err != nil {
+			return err
+		}
+		base.ID = nonce
+		typeSave = "INSERT"
+	}
+	if typeSave == "UPDATE" {
+		tx.Exec(fmt.Sprintf(`INSERT INTO TransactionSagaRow (created_at, go_id, type, metadata, table, row_id) VALUES (?, (
+					select row_to_json (row)
+					from (select * from %v where id = ?) row
+					))`, tx.Statement.Table), time.Now(), utils.GoID(), typeSave, base.ID, tx.Statement.Table, base.ID)
+	} else {
+		tx.Create(&TransactionSagaRow{
+			CreatedAt: time.Now(),
+			GoID:      utils.GoID(),
+			Table:     tx.Statement.Table,
+			RowID:     base.ID,
+			Type:      typeSave,
+		})
 	}
 	return nil
 }

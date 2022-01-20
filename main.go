@@ -35,7 +35,7 @@ func NewProxyServer(db *gorm.DB, services []HandlerService, handlerAuth HandlerA
 	}
 
 	log.Println(">> AutoMigrate infrastructure")
-	err = db.AutoMigrate(&models.SchemaVersion{}, &models.APILock{})
+	err = db.AutoMigrate(&models.SchemaVersion{}, &models.APILock{}, &models.TransactionSagaRow{}, &models.TransactionSaga{})
 	if err != nil {
 		log.Println(err)
 	}

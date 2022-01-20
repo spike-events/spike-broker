@@ -229,7 +229,7 @@ func (s *Base) Init(migration migration.Migration, subscribers ...func()) {
 		if os.Getenv("API_LOG_LEVEL") == "DEBUG" {
 			natsDebug = providers2.ConfigEnableDebug
 		}
-		s.provider = providers2.NewNatsConn(natsURL, natsDebug)
+		s.provider = providers2.NewNatsConn(s.db, natsURL, natsDebug)
 	//case providers.CustomProvider:
 	//	if s.options.CustomProvider == nil {
 	//		panic("invalid provider")
