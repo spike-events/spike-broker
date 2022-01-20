@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"syscall"
 )
 
@@ -43,6 +44,17 @@ func NewConnectionWS(srvBase *service.Base, oauth ...*service.AuthRid) func(w ht
 
 func wsHandler(ctx context.Context, c *WSConnection) {
 	var errorMsg *WSMessage
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("ws: stack error, %v", r)
+			log.Printf(string(debug.Stack()))
+			log.Printf("ws: context done, disconnecting %s", c.ID)
+			err := c.WSConnection().Close()
+			if err != nil {
+				log.Printf("ws: failed to close connection %s: %v", c.ID, err)
+			}
+		}
+	}()
 	go func() {
 		<-ctx.Done()
 		log.Printf("ws: context done, disconnecting %s", c.ID)
