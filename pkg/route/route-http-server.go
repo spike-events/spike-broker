@@ -2,6 +2,7 @@ package route
 
 import (
 	"context"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
 	"net/http"
 	"net/http/pprof"
@@ -63,6 +64,7 @@ func (s *routeService) serve() chan bool {
 			r.Handle("/debug/pprof/block", pprof.Handler("block"))
 			r.Handle("/debug/pprof/mutex", pprof.Handler("mutex"))
 			r.Handle("/debug/pprof/allocs", pprof.Handler("allocs"))
+			r.Handle("/metrics", promhttp.Handler())
 
 		} else {
 			r = s.routes
