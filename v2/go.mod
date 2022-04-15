@@ -1,9 +1,8 @@
-module github.com/spike-events/spike-broker
+module github.com/spike-events/spike-broker/v2
 
 go 1.16
 
 require (
-	github.com/confluentinc/confluent-kafka-go v1.7.0
 	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/go-playground/universal-translator v0.17.0 // indirect
 	github.com/go-playground/validator v9.31.0+incompatible
