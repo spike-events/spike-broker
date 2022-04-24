@@ -27,7 +27,7 @@ func AuthMiddleware(oauth ...*service.AuthRid) func(http.Handler) http.Handler {
 						continue
 					}
 
-					/* Handle NoAuth endpoints */
+					/* Handle Public endpoints */
 					endpoint := "/api/" + strings.ReplaceAll(p.EndpointNoMethod(), ".", "/")
 					if r.URL.Path == endpoint && r.Method == p.Method {
 						validBearer = false

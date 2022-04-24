@@ -9,12 +9,12 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/gofrs/uuid"
+	"github.com/spike-events/spike-broker/pkg/service/request"
+	"github.com/spike-events/spike-broker/v2/pkg/broker"
 	"github.com/spike-events/spike-broker/v2/pkg/models"
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
 	"github.com/spike-events/spike-broker/v2/pkg/route/migration"
 	"github.com/spike-events/spike-broker/v2/pkg/service"
-	"github.com/spike-events/spike-broker/v2/pkg/service/request"
-	"gorm.io/gorm"
 )
 
 type routeService struct {
@@ -24,7 +24,6 @@ type routeService struct {
 	Cancel     context.CancelFunc
 	terminated chan bool
 
-	conf           models.ProxyOptions
 	m              *sync.Mutex
 	restart        chan bool
 	quitRestartJob chan bool
@@ -35,25 +34,22 @@ type routeService struct {
 var routeServiceImpl *routeService
 
 // NewRouteService instance route service
-func NewRouteService(db *gorm.DB, key uuid.UUID, auths ...*service.AuthRid) *routeService {
+func NewRouteService() service.Service {
 	if routeServiceImpl == nil {
 		routeServiceImpl = &routeService{
-			Base:           service.NewBaseService(db, key, rids.Route()),
-			auths:          auths,
-			Cancel:         nil,
 			terminated:     make(chan bool),
-			conf:           models.ProxyOptions{},
 			m:              &sync.Mutex{},
 			restart:        make(chan bool),
 			quitRestartJob: make(chan bool),
-			routes:         nil,
 		}
 	}
 	return routeServiceImpl
 }
 
-func NewService(db *gorm.DB, key uuid.UUID) service.Service {
-	return NewRouteService(db, key)
+func (s *routeService) Int(instanceKey uuid.UUID, repo interface{}, broker request.Provider,
+	options broker.SpikeOptions) service.Service {
+	s.Base = service.NewBaseService(instanceKey, repo, rids.Route(), broker, options)
+	return s
 }
 
 func (s *routeService) AddAuthRid(auth *service.AuthRid) {
@@ -72,13 +68,10 @@ func (s *routeService) Start() {
 		s.Broker().Subscribe(rids.Route().ValidateToken(), s.validateToken)
 		s.Broker().Subscribe(rids.Route().UserHavePermission(), s.userHavePermission)
 		s.Broker().Subscribe(rids.Route().Ready(), s.ready)
-
-		s.Broker().RegisterMonitor(rids.Route().EventSocketConnected())
-		s.Broker().RegisterMonitor(rids.Route().EventSocketDisconnected())
 	})
 }
 
-func (s *routeService) AllServicesStarted() {
+func (s *routeService) Started() {
 	fmt.Println("Restarting Http server")
 	started := s.serve()
 	<-started
@@ -95,7 +88,7 @@ func (s *routeService) Stop() {
 	s.Base.Stop()
 }
 
-func (s *routeService) validateToken(r *request.CallRequest) {
+func (s *routeService) validateToken(r *request.Call) {
 	if os.Getenv("API_LOG_LEVEL") == "DEBUG" {
 		log.Printf("route: validating token")
 	}
@@ -117,7 +110,7 @@ func (s *routeService) validateToken(r *request.CallRequest) {
 	r.ErrorRequest(&request.ErrorStatusUnauthorized)
 }
 
-func (s *routeService) userHavePermission(r *request.CallRequest) {
+func (s *routeService) userHavePermission(r *request.Call) {
 	var req models.HavePermissionRequest
 	_ = r.ParseData(&req)
 	if os.Getenv("API_LOG_LEVEL") == "DEBUG" {
@@ -138,7 +131,7 @@ func (s *routeService) userHavePermission(r *request.CallRequest) {
 	r.OK()
 }
 
-func (s *routeService) ready(r *request.CallRequest) {
+func (s *routeService) ready(r *request.Call) {
 	/* Test Database */
 	var schemaVersion models.SchemaVersion
 	err := s.DB().Find(&schemaVersion).Error

@@ -18,7 +18,7 @@ func (m *v1) Migrate(db *gorm.DB) error {
 }
 
 // NewRoute migration
-func NewRoute() migration.Migration {
+func NewRoute() migration.Migrator {
 	return &srv1Migration{}
 }
 

@@ -11,49 +11,45 @@ import (
 
 	"github.com/gofrs/uuid"
 	"github.com/nats-io/nats-server/v2/server"
+	"github.com/spike-events/spike-broker/v2/pkg/broker"
 	"github.com/spike-events/spike-broker/v2/pkg/models"
-	"github.com/spike-events/spike-broker/v2/pkg/providers"
 	"github.com/spike-events/spike-broker/v2/pkg/route"
 	"github.com/spike-events/spike-broker/v2/pkg/service"
 	"gorm.io/gorm"
 )
 
-var localNatsServer *server.Server
-
-// HandlerService handler
-type HandlerService func(db *gorm.DB, key uuid.UUID) service.Service
-
-// HandlerAuthService required instance auth service
-type HandlerAuthService func(db *gorm.DB, key uuid.UUID) service.Auth
-
 // NewProxyServer new service proxy
-func NewProxyServer(db *gorm.DB, services []HandlerService, handlerAuth HandlerAuthService,
-	options models.ProxyOptions) (ctx context.Context, connected chan bool, err error) {
+func NewProxyServer(db *gorm.DB, options broker.SpikeOptions) (ctx context.Context, connected chan bool, err error) {
 	if db == nil {
 		err = fmt.Errorf("db instance is required")
 		return
 	}
 
-	log.Println(">> AutoMigrate infrastructure")
+	if options.Logger == nil {
+		options.Logger = log.Default()
+	}
+
+	logger := options.Logger
+	logger.Println(">> AutoMigrate infrastructure")
 	err = db.AutoMigrate(&models.SchemaVersion{}, &models.APILock{})
 	if err != nil {
-		log.Println(err)
+		logger.Println(err)
 	}
-	defer log.Println("<< AutoMigrate infrastructure")
+	defer logger.Println("<< AutoMigrate infrastructure")
 
 	err = options.IsValid()
 	if err != nil {
 		return
 	}
 
-	servicesType := make(map[string]string)
+	servicesType := make(map[string]service.Service)
 	for _, srv := range options.Services {
-		servicesType[srv] = srv
+		servicesType[srv.Rid().Name()] = srv
 	}
 
 	if options.Developer {
-		if providers.ProviderType(os.Getenv("PROVIDER")) == providers.NatsProvider {
-			localNatsServer = runDefaultServer(options.NatsConfig.LocalNatsDebug, options.NatsConfig.LocalNatsTrace)
+		if config, ok := options.ProviderConfig.(broker.NatsOptions); ok {
+			runDefaultServer(config.LocalNatsDebug, config.LocalNatsTrace)
 		}
 	}
 
@@ -61,14 +57,14 @@ func NewProxyServer(db *gorm.DB, services []HandlerService, handlerAuth HandlerA
 	connected = make(chan bool)
 
 	go func() {
-		receivedSignal := make(chan os.Signal, 1)
-		signal.Notify(receivedSignal, syscall.SIGINT, syscall.SIGTERM)
+		stopSignal := make(chan os.Signal, 1)
+		signal.Notify(stopSignal, syscall.SIGINT, syscall.SIGTERM)
 		go func() {
-			sig := <-receivedSignal
+			sig := <-stopSignal
 			if options.StopTimeout == 0 {
 				options.StopTimeout = 60 * time.Second
 			}
-			log.Printf("main: terminating with sig %s, giving %f seconds to WebSocket handling",
+			logger.Printf("main: terminating with sig %s, giving %f seconds to WebSocket handling",
 				sig.String(), options.StopTimeout.Seconds())
 			time.Sleep(options.StopTimeout)
 			cancel()
@@ -77,7 +73,7 @@ func NewProxyServer(db *gorm.DB, services []HandlerService, handlerAuth HandlerA
 		key, _ := uuid.NewV4()
 		v5 := uuid.NewV5(key, "github.com/spike-events/spike-broker")
 
-		authService := handlerAuth(db, v5)
+		routerService := route.NewService()
 		routerService := route.NewRouteService(db, v5)
 
 		if servicesType[routerService.Rid().Name()] == routerService.Rid().Name() || options.Developer {
@@ -104,25 +100,19 @@ func NewProxyServer(db *gorm.DB, services []HandlerService, handlerAuth HandlerA
 				routerService.AddAuthRid(&service.AuthRid{Service: s.Rid().Name(), Auth: authService, Patterns: patterns})
 				s.SetOptions(options)
 				s.SetContext(ctx)
-				log.Println(">> Starting", s.Rid().Name())
+				logger.Println(">> Starting", s.Rid().Name())
 				s.Start()
-				log.Println("<< Started", s.Rid().Name())
-				startDeps = append(startDeps, func() {
-					log.Println(">> Processing Deps", s.Rid().Name())
-					processDependencies(s)
-					log.Println("<< Deps Processed", s.Rid().Name())
-
-					go func() {
-						<-ctx.Done()
-						log.Println(">> Stopping", s.Rid().Name())
-						s.Stop()
-						log.Println("<< Stopped", s.Rid().Name())
-					}()
-				})
+				logger.Println("<< Started", s.Rid().Name())
+				go func() {
+					<-ctx.Done()
+					logger.Println(">> Stopping", s.Rid().Name())
+					s.Stop()
+					logger.Println("<< Stopped", s.Rid().Name())
+				}()
 				startAllDeps = append(startAllDeps, func() {
-					log.Println(">> AllServicesStarted", s.Rid().Name())
-					s.AllServicesStarted()
-					log.Println("<< allServicesStarted", s.Rid().Name())
+					logger.Println(">> Started", s.Rid().Name())
+					s.Started()
+					logger.Println("<< allServicesStarted", s.Rid().Name())
 				})
 			}
 		}
@@ -136,17 +126,17 @@ func NewProxyServer(db *gorm.DB, services []HandlerService, handlerAuth HandlerA
 		}
 
 		// Inform Route Service
-		routerService.AllServicesStarted()
+		routerService.Started()
 		connected <- true
 
 		// Wait for context completion
 		<-ctx.Done()
-		log.Printf("main: waiting for services to shutdown...")
+		logger.Printf("main: waiting for services to shutdown...")
 		routerService.Stop()
 		for _, s := range startedList {
 			s.Stop()
 		}
-		log.Printf("main: all services stopped")
+		logger.Printf("main: all services stopped")
 	}()
 
 	return
@@ -188,13 +178,4 @@ func runServer(opts *server.Options) *server.Server {
 		panic("Unable to start Broker Server in Go Routine")
 	}
 	return s
-}
-
-func processDependencies(s service.Service) {
-	deps := s.Dependencies()
-	for _, dep := range deps {
-		log.Printf(">> %s processing dep %s\n", s.Rid().Name(), dep)
-		s.StartAfterDependency(dep)
-		log.Printf("<< %s processing dep %s\n", s.Rid().Name(), dep)
-	}
 }

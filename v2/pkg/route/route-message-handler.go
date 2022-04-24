@@ -53,7 +53,7 @@ func (s *routeService) handler(endpoint rids.EndpointRest, w http.ResponseWriter
 		}
 	}
 	token := r.Header.Get("token")
-	call := request.CallRequest{
+	call := request.Call{
 		Data:     data,
 		Params:   params,
 		Form:     r.Form,
@@ -116,7 +116,7 @@ func (s *routeService) handler(endpoint rids.EndpointRest, w http.ResponseWriter
 		return
 	}
 
-	var parsedResponse request.ErrorRequest
+	var parsedResponse request.Error
 	if parsedResponse.Parse(result); parsedResponse.Message != "" {
 		if debugLevel == "DEBUG" || debugLevel == "ERR" {
 			log.Printf("api: received error response: %s", parsedResponse.ToJSON())

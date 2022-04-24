@@ -14,8 +14,8 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/nats-io/nats.go"
 	spikebroker "github.com/spike-events/spike-broker/v2"
+	"github.com/spike-events/spike-broker/v2/pkg/broker"
 	"github.com/spike-events/spike-broker/v2/pkg/models"
-	"github.com/spike-events/spike-broker/v2/pkg/providers"
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
 	"github.com/spike-events/spike-broker/v2/pkg/service"
 	"github.com/spike-events/spike-broker/v2/pkg/service/request"
@@ -67,7 +67,7 @@ func (s *configService) Start() {
 func (s *configService) AfterStart() {
 }
 
-func (s *configService) getServiceConfig(r *request.CallRequest) {
+func (s *configService) getServiceConfig(r *request.Call) {
 }
 
 // OtherConfig Service
@@ -85,11 +85,11 @@ func OtherConfig() *otherConfig {
 }
 
 func (c *otherConfig) GetServiceConfig(serviceName ...string) *rids.Pattern {
-	return c.NewMethod("getOtherServiceConfig", "getOtherServiceConfig.$Service", serviceName...).NoAuth().Get()
+	return c.NewMethod("getOtherServiceConfig", "getOtherServiceConfig.$Service", serviceName...).Public().Get()
 }
 
 func (c *otherConfig) GetAfterRestart(serviceName ...string) *rids.Pattern {
-	return c.NewMethod("getOtherServiceConfig", "getOtherServiceConfig.$Service.afterRestart", serviceName...).NoAuth().Get()
+	return c.NewMethod("getOtherServiceConfig", "getOtherServiceConfig.$Service.afterRestart", serviceName...).Public().Get()
 }
 
 type otherConfigService struct {
@@ -145,7 +145,7 @@ func (s *otherConfigService) IncludeAfterRestart() {
 	s.Broker().Subscribe(OtherConfig().GetAfterRestart(), s.getAfterRestart)
 }
 
-func (s *otherConfigService) getOtherServiceConfig(r *request.CallRequest) {
+func (s *otherConfigService) getOtherServiceConfig(r *request.Call) {
 	var str string
 	r.ParseData(&str)
 	if len(str) > 0 {
@@ -158,7 +158,7 @@ func (s *otherConfigService) getOtherServiceConfig(r *request.CallRequest) {
 	r.OK()
 }
 
-func (s *otherConfigService) getAfterRestart(r *request.CallRequest) {
+func (s *otherConfigService) getAfterRestart(r *request.Call) {
 	r.OK()
 }
 
@@ -171,18 +171,18 @@ func (s *auth) ValidateToken(token string) (string, bool) {
 	return token, true
 }
 
-func (s *auth) UserHavePermission(r *request.CallRequest) bool {
+func (s *auth) UserHavePermission(r *request.Call) bool {
 	return true
 }
 
-func (s *auth) NewPermission(r *request.CallRequest) {
+func (s *auth) NewPermission(r *request.Call) {
 
 }
 
 func TestService(t *testing.T) {
 	t.Log("Testing service")
 
-	os.Setenv("PROVIDER", string(providers.NatsProvider))
+	os.Setenv("PROVIDER", string(broker.NatsProvider))
 
 	options := models.ProxyOptions{
 		Developer: true,
@@ -192,7 +192,7 @@ func TestService(t *testing.T) {
 		},
 	}
 
-	services := []spikebroker.HandlerService{
+	services := []spikebroker.ServiceInitializer{
 		NewOtherConfigService,
 		NewConfigService,
 	}
@@ -246,14 +246,14 @@ func TestService(t *testing.T) {
 
 var client = &http.Client{}
 
-func Request(p *rids.Pattern, param interface{}, rs interface{}) *request.ErrorRequest {
+func Request(p *rids.Pattern, param interface{}, rs interface{}) *request.Error {
 	endpoint := "http://localhost:3333" + p.EndpointHTTP()
 
 	data, _ := json.Marshal(param)
 	payload := strings.NewReader(string(data))
 	req, err := http.NewRequest(p.Method, endpoint, payload)
 	if err != nil {
-		return &request.ErrorRequest{
+		return &request.Error{
 			Message: err.Error(),
 			Error:   err,
 			Code:    http.StatusInternalServerError,
@@ -266,7 +266,7 @@ func Request(p *rids.Pattern, param interface{}, rs interface{}) *request.ErrorR
 
 	res, err := client.Do(req)
 	if err != nil {
-		return &request.ErrorRequest{
+		return &request.Error{
 			Message: err.Error(),
 			Error:   err,
 			Code:    http.StatusInternalServerError,
@@ -277,7 +277,7 @@ func Request(p *rids.Pattern, param interface{}, rs interface{}) *request.ErrorR
 	body, err := ioutil.ReadAll(res.Body)
 
 	if res.StatusCode != 200 {
-		return &request.ErrorRequest{
+		return &request.Error{
 			Message: string(body),
 			Error:   fmt.Errorf(string(body)),
 			Code:    res.StatusCode,
@@ -285,14 +285,14 @@ func Request(p *rids.Pattern, param interface{}, rs interface{}) *request.ErrorR
 	}
 
 	if err != nil {
-		return &request.ErrorRequest{
+		return &request.Error{
 			Message: string(body),
 			Error:   fmt.Errorf(string(body)),
 			Code:    http.StatusInternalServerError,
 		}
 	}
 
-	var rError *request.ErrorRequest
+	var rError *request.Error
 	rError.Parse(body)
 
 	if rError != nil && rError.Code > 200 {
@@ -302,7 +302,7 @@ func Request(p *rids.Pattern, param interface{}, rs interface{}) *request.ErrorR
 	if rs != nil {
 		err = json.Unmarshal(body, rs)
 		if err != nil {
-			return &request.ErrorRequest{
+			return &request.Error{
 				Message: err.Error(),
 				Error:   err,
 				Code:    http.StatusInternalServerError,

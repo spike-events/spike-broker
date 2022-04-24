@@ -7,8 +7,8 @@ import (
 
 	"github.com/gofrs/uuid"
 	spikebroker "github.com/spike-events/spike-broker/v2"
+	"github.com/spike-events/spike-broker/v2/pkg/broker"
 	"github.com/spike-events/spike-broker/v2/pkg/models"
-	"github.com/spike-events/spike-broker/v2/pkg/providers"
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
 	"github.com/spike-events/spike-broker/v2/pkg/service"
 	"github.com/spike-events/spike-broker/v2/pkg/service/request"
@@ -32,7 +32,7 @@ func SpikeRid() *spikeRid {
 }
 
 func (k *spikeRid) NewRequest() *rids.Pattern {
-	return k.NewMethod("", "request").NoAuth().Post()
+	return k.NewMethod("", "request").Public().Post()
 }
 
 func (k *spikeRid) Event() *rids.Pattern {
@@ -56,17 +56,17 @@ func NewBrokerService(db *gorm.DB, key uuid.UUID) service.Service {
 func (s *spikeService) Start() {
 	s.Init(nil, func() {
 
-		s.Broker().Subscribe(SpikeRid().NewRequest(), func(msg *request.CallRequest) {
+		s.Broker().Subscribe(SpikeRid().NewRequest(), func(msg *request.Call) {
 			fmt.Println(">> kafka new message: subscribe 111111111111111")
 			msg.OK(map[string]string{"OK": "true"})
 		})
 
-		s.Broker().Monitor("monitor1", SpikeRid().NewRequest(), func(msg *request.CallRequest) {
+		s.Broker().Monitor("monitor1", SpikeRid().NewRequest(), func(msg *request.Call) {
 			fmt.Println(">> kafka new message: subscribe 22222222222222")
 			msg.OK(map[string]string{"OK": "true"})
 		})
 
-		s.Broker().Monitor("monitor2", SpikeRid().NewRequest(), func(msg *request.CallRequest) {
+		s.Broker().Monitor("monitor2", SpikeRid().NewRequest(), func(msg *request.Call) {
 			fmt.Println(">> kafka new message: subscribe 3333333333333333")
 			msg.OK(map[string]string{"OK": "true"})
 		})
@@ -77,14 +77,14 @@ func (s *spikeService) Start() {
 		//	msg.OK(map[string]string{"OK": "true"})
 		//})
 
-		s.Broker().Subscribe(SpikeRid().EventQueue(), func(msg *request.CallRequest) {
+		s.Broker().Subscribe(SpikeRid().EventQueue(), func(msg *request.Call) {
 
 			fmt.Println(string(msg.Data))
 			msg.OK(map[string]string{"OK": "true"})
 
 		})
 
-		s.Broker().Subscribe(SpikeRid().Event(), func(msg *request.CallRequest) {
+		s.Broker().Subscribe(SpikeRid().Event(), func(msg *request.Call) {
 
 			fmt.Println(string(msg.Data))
 			msg.OK(map[string]string{"OK": "true"})
@@ -103,7 +103,7 @@ func TestKafka(t *testing.T) {
 
 	t.Log("Testing service")
 
-	os.Setenv("PROVIDER", string(providers.SpikeProvider))
+	os.Setenv("PROVIDER", string(broker.SpikeProvider))
 
 	options := models.ProxyOptions{
 		Developer: true,
@@ -113,7 +113,7 @@ func TestKafka(t *testing.T) {
 		},
 	}
 
-	services := []spikebroker.HandlerService{
+	services := []spikebroker.ServiceInitializer{
 		NewBrokerService,
 	}
 
