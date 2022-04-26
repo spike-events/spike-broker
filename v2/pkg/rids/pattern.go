@@ -18,11 +18,8 @@ type Pattern interface {
 	EndpointName() string
 	EndpointNameSpecific() string
 	QueryParams() interface{}
-}
-
-type pattern struct {
-	MethodValue      *method
-	QueryParamsValue interface{}
+	SetParams(params map[string]fmt.Stringer)
+	Clone() Pattern
 }
 
 func newPattern(m *method) Pattern {
@@ -30,6 +27,18 @@ func newPattern(m *method) Pattern {
 		MethodValue:      m,
 		QueryParamsValue: nil,
 	}
+}
+
+type pattern struct {
+	MethodValue      *method
+	QueryParamsValue interface{}
+}
+
+func (p *pattern) Clone() Pattern {
+	mClone := *p.MethodValue
+	clone := newPattern(&mClone).(*pattern)
+	clone.QueryParamsValue = p.QueryParamsValue
+	return clone
 }
 
 func (p *pattern) QueryParams() interface{} {
@@ -58,7 +67,7 @@ func (p *pattern) Method() string {
 }
 
 func (p *pattern) EndpointREST() string {
-	endpoint := p.MethodValue.SpecificEndpoint
+	endpoint := p.EndpointNameSpecific()
 	endpointParts := strings.Split(endpoint, ".")
 	endpoint = strings.Join(endpointParts[:len(endpointParts)-1], "/")
 	var urlQuery string
@@ -80,8 +89,8 @@ func (p *pattern) EndpointREST() string {
 		}
 	}
 	var returnValue string
-	if p.MethodValue.Prefix != "" {
-		returnValue = fmt.Sprintf("%s/", p.MethodValue.Prefix)
+	if p.MethodValue.HttpPrefix != "" {
+		returnValue = fmt.Sprintf("%s/", p.MethodValue.HttpPrefix)
 	}
 	return fmt.Sprintf("/%s%s%s", returnValue, endpoint, urlQuery)
 }
@@ -95,51 +104,8 @@ func (p *pattern) EndpointNameSpecific() string {
 	return fmt.Sprintf("%v.%v.%v", p.Service(), p.MethodValue.SpecificEndpoint, p.MethodValue.HttpMethod)
 }
 
-//func (p *pattern) register(r *chi.Mux, hc func(SpecificEndpoint EndpointRest, w http.ResponseWriter, r *http.Request)) {
-//	if r == nil {
-//		panic("chi.Mux is null")
-//	}
-//
-//	var SpecificEndpoint string
-//	if p.Endpoint == "" {
-//		SpecificEndpoint = string(p.Service)
-//	} else {
-//		SpecificEndpoint = string(p.Service) + "." + p.EndpointNoParams
-//	}
-//
-//	parts := strings.Split(SpecificEndpoint, ".")
-//
-//	var Params []fmt.Stringer
-//	for i, part := range parts {
-//		if strings.Contains(part, "$") {
-//			part = strings.ReplaceAll(part, "$", "")
-//			parts[i] = fmt.Sprintf("{%v}", part)
-//			Params = append(Params, strings.NewReader(part))
-//		}
-//	}
-//
-//	methodName := fmt.Sprintf("/api/%v", strings.Join(parts, "/"))
-//	handler := func(w http.ResponseWriter, r *http.Request) {
-//		e := EndpointRest{
-//			Endpoint:      p.EndpointName(),
-//			Params:        Params,
-//			HttpMethod:        p.Method,
-//			Authenticated: p.Public(),
-//		}
-//		hc(e, w, r)
-//	}
-//
-//	log.Printf("%s -> %s", p.Method, methodName)
-//	switch p.Method {
-//	case "GET":
-//		r.Get(methodName, handler)
-//	case "POST":
-//		r.Post(methodName, handler)
-//	case "PUT":
-//		r.Put(methodName, handler)
-//	case "PATCH":
-//		r.Patch(methodName, handler)
-//	case "DELETE":
-//		r.Delete(methodName, handler)
-//	}
-//}
+func (p *pattern) SetParams(params map[string]fmt.Stringer) {
+	m := *p.MethodValue
+	m.updateParams(params)
+	p.MethodValue = &m
+}

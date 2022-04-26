@@ -1,31 +1,31 @@
 package socket
 
 import (
+	"github.com/spike-events/spike-broker/v2/pkg/broker"
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
-	"github.com/spike-events/spike-broker/v2/pkg/service/request"
 )
 
 type WSMessageToken struct {
 	WSMessage
 }
 
-func (t *WSMessageToken) Handle(ws *WSConnection) *request.Error {
-	type rs struct {
-		Token string
+func (t *WSMessageToken) Handle(ws WSConnection) broker.Error {
+	if len(t.Token) == 0 {
+		return broker.ErrorInvalidParams
 	}
-	var result rs
-	err := ws.Broker().Request(rids.Route().ValidateToken(), nil, &result, t.Token)
-	if err != nil {
-		return &request.ErrorStatusUnauthorized
+
+	token, valid := ws.Authenticator().ValidateToken(t.Token)
+	if !valid {
+		return broker.ErrorStatusUnauthorized
 	}
 
 	publish := ws.GetSessionToken() == ""
-	ws.SetSessionToken(result.Token)
+	ws.SetSessionToken(token)
 	ws.SetSessionID(t.ID)
-	t.Token = result.Token
+	t.Token = token
 	ws.WSConnection().WriteJSON(t)
 	if publish {
-		go ws.Broker().Publish(rids.Route().EventSocketConnected(), request.NewRequest(ws), ws.GetSessionToken())
+		go ws.Broker().Publish(rids.Spike().EventSocketConnected(), ws, ws.GetSessionToken())
 	}
 	return nil
 }

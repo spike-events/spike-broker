@@ -11,7 +11,6 @@ type Error interface {
 	Code() int
 	Message() string
 	Data() interface{}
-	Parse(payload []byte) error
 	ToJSON() []byte
 }
 
@@ -39,15 +38,6 @@ func (e *errorRequest) Message() string {
 
 type RedirectRequest struct {
 	URL string
-}
-
-// Parse error request
-func (e *errorRequest) Parse(payload []byte) error {
-	err := json.Unmarshal(payload, e)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 // ToJSON error request
@@ -91,4 +81,13 @@ func NewError(msg string, code int, data interface{}) Error {
 		CodeInt:    code,
 		DataIface:  data,
 	}
+}
+
+func NewErrorFromJSON(j json.RawMessage) Error {
+	var parsed errorRequest
+	err := json.Unmarshal(j, &parsed)
+	if err != nil {
+		return nil
+	}
+	return &parsed
 }

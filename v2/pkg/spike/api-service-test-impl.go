@@ -2,7 +2,7 @@ package spike
 
 import (
 	"context"
-	"time"
+	"fmt"
 
 	"github.com/gofrs/uuid"
 	"github.com/spike-events/spike-broker/v2/pkg/broker"
@@ -14,33 +14,48 @@ import (
 var serviceTestImplInstance *testServiceImpl
 
 type testServiceImpl struct {
-	opts              Options
+	opts              *Options
 	testProvider      testProvider.Provider
 	startRepository   service.Repository
 	startRequestMocks testProvider.RequestMock
+	ctx               context.Context
+	cancel            context.CancelFunc
+	id                uuid.UUID
 }
 
-func (b *testServiceImpl) Start(options Options) error {
-	ctx, cancel := context.WithTimeout(context.Background(), b.opts.Timeout)
-	tp := testProvider.NewTestProvider(ctx, cancel)
+func (s *testServiceImpl) Initialize(options Options) error {
+	s.opts = &options
+	s.ctx, s.cancel = context.WithTimeout(context.Background(), options.Timeout)
+	id, err := uuid.NewV4()
+	if err != nil {
+		return err
+	}
+	s.id = id
+	return nil
+}
 
-	b.opts = options
-	b.opts.Provider = tp
-	b.opts.Repository = b.startRepository
-	config := service.Config{
-		Broker:     tp,
-		Logger:     options.Logger,
-		Repository: b.startRepository,
+func (s *testServiceImpl) StartService() error {
+	if s.opts == nil {
+		return fmt.Errorf("API not initialized")
 	}
 
-	if err := b.opts.Service.SetConfig(config); err != nil {
+	tp := testProvider.NewTestProvider(s.ctx, s.cancel)
+	s.opts.Broker = tp
+	s.opts.Repository = s.startRepository
+	config := service.Config{
+		Broker:     tp,
+		Logger:     s.opts.Logger,
+		Repository: s.startRepository,
+	}
+
+	if err := s.opts.Service.SetConfig(config); err != nil {
 		return err
 	}
 
 	// TODO: Test Migrator
 
 	// Initialize Handlers
-	handlers := b.opts.Service.Handlers()
+	handlers := s.opts.Service.Handlers()
 	for _, h := range handlers {
 		_, err := tp.Subscribe(h)
 		if err != nil {
@@ -49,7 +64,7 @@ func (b *testServiceImpl) Start(options Options) error {
 	}
 
 	// Initialize Monitors
-	monitos := b.opts.Service.Monitors()
+	monitos := s.opts.Service.Monitors()
 	for g, m := range monitos {
 		_, err := tp.Monitor(g, m)
 		if err != nil {
@@ -57,13 +72,13 @@ func (b *testServiceImpl) Start(options Options) error {
 		}
 	}
 
-	// Start the service
+	// StartService the service
 	id, err := uuid.NewV4()
 	if err != nil {
 		return err
 	}
 
-	err = b.opts.Service.Start(id, ctx)
+	err = s.opts.Service.Start(id, s.ctx)
 	if err != nil {
 		return err
 	}
@@ -71,12 +86,16 @@ func (b *testServiceImpl) Start(options Options) error {
 	return nil
 }
 
-func (b *testServiceImpl) Stop(timeout time.Duration) error {
-	b.opts.Provider.Close()
+func (s *testServiceImpl) Stop() error {
+	if s.opts == nil {
+		return fmt.Errorf("API not initialized")
+	}
+
+	s.opts.Broker.Close()
 	return nil
 }
 
-func (b *testServiceImpl) TestRequestOrPublish(
+func (s *testServiceImpl) TestRequestOrPublish(
 	p rids.Pattern,
 	repository interface{},
 	payload interface{},
@@ -87,21 +106,24 @@ func (b *testServiceImpl) TestRequestOrPublish(
 	accessErr func(interface{}),
 	mocks testProvider.Mocks,
 ) broker.Error {
+	if s.opts == nil {
+		return broker.InternalError(fmt.Errorf("API not initialized"))
+	}
 
-	err := b.opts.Service.SetConfig(service.Config{
+	err := s.opts.Service.SetConfig(service.Config{
 		Repository: repository,
-		Broker:     b.opts.Provider,
-		Logger:     b.opts.Logger,
+		Broker:     s.opts.Broker,
+		Logger:     s.opts.Logger,
 	})
 	if err != nil {
 		return broker.InternalError(err)
 	}
 
-	b.testProvider.SetMocks(mocks)
+	s.testProvider.SetMocks(mocks)
 
 	call := testProvider.NewCall(p, payload, token, requestOk, requestErr)
 	access := testProvider.NewAccess(p, payload, token, accessOk, accessErr)
-	handleRequest(p, call, access, b.opts)
+	handleRequest(p, call, access, *s.opts)
 	if access.GetError() != nil {
 		return access.GetError()
 	}

@@ -1,60 +1,35 @@
 package socket
 
 import (
-	"fmt"
-	"strings"
-
-	"github.com/spike-events/spike-broker/v2/pkg/models"
-	"github.com/spike-events/spike-broker/v2/pkg/rids"
-	"github.com/spike-events/spike-broker/v2/pkg/service/request"
-	"github.com/spike-events/spike-broker/v2/pkg/utils"
+	"github.com/spike-events/spike-broker/v2/pkg/broker"
+	spikeutils "github.com/spike-events/spike-broker/v2/pkg/spike-utils"
 )
 
 type WSMessagePublish struct {
 	WSMessage
 }
 
-func (m *WSMessagePublish) Handle(ws *WSConnection) *request.Error {
-	values := strings.Split(m.Endpoint, ".")
-	permission := models.HavePermissionRequest{
-		Service:  values[0],
-		Endpoint: strings.Join(values[1:], "."),
-		Method:   m.Method,
-	}
-
-	var endpoint *rids.Pattern
-	for _, auth := range ws.auth {
-		if auth.Service != permission.Service {
-			continue
+func (m *WSMessagePublish) Handle(ws WSConnection) broker.Error {
+	if len(ws.GetToken()) != 0 {
+		token, valid := ws.Authenticator().ValidateToken(ws.GetToken())
+		if !valid {
+			return broker.ErrorStatusUnauthorized
 		}
-
-		endpoint = utils.PatternFromEndpoint(auth.Patterns, &permission)
-		break
+		ws.SetSessionToken(token)
 	}
 
-	if endpoint == nil || m.Method == "INTERNAL" {
-		return &request.ErrorStatusForbidden
+	p := spikeutils.PatternFromEndpoint(ws.GetHandlers(), m.SpecificEndpoint())
+	call := broker.NewCall(p, m.Data)
+	call.SetToken(ws.GetToken())
+	call.SetProvider(ws.Broker())
+
+	if !ws.Authorizer().HasPermission(call) {
+		return broker.ErrorStatusForbidden
 	}
 
-	values = strings.Split(endpoint.Endpoint, ".")
-	permission = models.HavePermissionRequest{
-		Service:  permission.Service,
-		Endpoint: fmt.Sprintf("%s.%s", permission.Service, endpoint.Endpoint),
-		Method:   m.Method,
-	}
-	if endpoint.Authenticated && len(ws.auth) > 0 {
-
-		callAuth := request.NewRequest(permission)
-		callAuth.Token = string(ws.token)
-
-		if !ws.auth[0].Auth.UserHavePermission(callAuth) {
-			return &request.ErrorStatusForbidden
-		}
-	}
-
-	err := ws.Broker().Publish(endpoint, request.NewRequest(m.Data), ws.token)
+	err := ws.Broker().Publish(p, m.Data, ws.GetToken())
 	if err != nil {
-		return request.InternalError(err)
+		return broker.InternalError(err)
 	}
 	return nil
 }

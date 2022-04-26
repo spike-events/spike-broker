@@ -191,7 +191,7 @@ func (s *Provider) SubscribeAll(sub broker.Subscription) (interface{}, error) {
 }
 
 // Monitor listens on endpoint nats in balanced mode do not respond. Use it to listen to events without answering them
-func (s *Provider) Monitor(monitoringGroup string, sub broker.Subscription) (interface{}, error) {
+func (s *Provider) Monitor(monitoringGroup string, sub broker.Subscription) (func(), error) {
 	m.Lock()
 	m.Unlock()
 	specific := sub.Resource.EndpointNameSpecific()
@@ -251,9 +251,8 @@ func (s *Provider) Request(p rids.Pattern, payload interface{}, rs interface{}, 
 		s.printDebug("nats: request to endpoint %s successful", p.EndpointName())
 	}
 
-	var eError broker.Error
-	err := eError.Parse(result)
-	if err != nil || (eError.Code() != http.StatusOK) {
+	eError := broker.NewErrorFromJSON(result)
+	if eError != nil || (eError.Code() != http.StatusOK) {
 		return eError
 	}
 
@@ -262,7 +261,7 @@ func (s *Provider) Request(p rids.Pattern, payload interface{}, rs interface{}, 
 		if !ok {
 			return broker.NewError("invalid response payload", http.StatusExpectationFailed, eError.Data())
 		}
-		err = json.Unmarshal(data, rs)
+		err := json.Unmarshal(data, rs)
 		if err != nil {
 			return broker.InternalError(err)
 		}

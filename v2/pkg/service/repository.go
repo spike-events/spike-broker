@@ -9,6 +9,8 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+var LockNamePrepend = "spike-v2"
+
 type Repository interface {
 	TryLock(lockName ...string) bool
 	Lock(lockName ...string)

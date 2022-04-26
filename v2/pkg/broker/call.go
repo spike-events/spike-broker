@@ -11,7 +11,7 @@ import (
 
 	"github.com/hetiansu5/urlquery"
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
-	"github.com/spike-events/spike-broker/v2/pkg/utils"
+	spike_utils "github.com/spike-events/spike-broker/v2/pkg/spike-utils"
 	"github.com/vincent-petithory/dataurl"
 )
 
@@ -56,7 +56,7 @@ func NewCall(p rids.Pattern, data interface{}) Call {
 		panic("invalid data")
 	case nil:
 	default:
-		data = utils.PointerFromInterface(data)
+		data = spike_utils.PointerFromInterface(data)
 		payload, err = json.Marshal(data)
 		if err != nil {
 			panic(err)
@@ -67,6 +67,14 @@ func NewCall(p rids.Pattern, data interface{}) Call {
 		Data:            payload,
 		EndpointPattern: p,
 	}
+}
+
+func NewHTTPCall(p rids.Pattern, token string, data interface{}, params map[string]fmt.Stringer, query interface{}) Call {
+	c := NewCall(p, data).(*call)
+	c.EndpointPattern.SetParams(params)
+	c.EndpointPattern.Query(query)
+	c.Token = token
+	return c
 }
 
 // CallRequest handler
@@ -239,7 +247,7 @@ func (c *call) OK(result ...interface{}) {
 	}
 
 	// Make sure we always marshal pointer structures
-	result[0] = utils.PointerFromInterface(result[0])
+	result[0] = spike_utils.PointerFromInterface(result[0])
 	payload, err := json.Marshal(result[0])
 	if err != nil {
 		panic(err)

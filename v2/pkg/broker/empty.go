@@ -18,6 +18,10 @@ type empty struct {
 	endpoint rids.Pattern
 }
 
+func (e empty) GetError() Error {
+	return nil
+}
+
 func (e empty) RawData() []byte {
 	return []byte{}
 }

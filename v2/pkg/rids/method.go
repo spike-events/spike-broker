@@ -19,7 +19,7 @@ type method struct {
 	LabelValue       string
 	ServiceName      string
 	ServiceLabel     string
-	Prefix           string
+	HttpPrefix       string
 	HttpMethod       string
 	GenericEndpoint  string
 	SpecificEndpoint string
@@ -27,16 +27,16 @@ type method struct {
 	IsPublic         bool
 }
 
-func newMethod(serviceName, serviceLabel, label, prefix, endpoint string, params ...fmt.Stringer) *method {
+func newMethod(serviceName, serviceLabel, label, httpPrefix, endpoint string, params ...fmt.Stringer) *method {
 	genericEndpoint := endpoint
-	sp := strings.Split(endpoint, ".")
+	epParts := strings.Split(endpoint, ".")
 	var paramsMap = make(map[string]fmt.Stringer)
 	for _, param := range params {
-		for _, rep := range sp {
-			if strings.Contains(rep, "$") {
-				paramsMap[rep[1:]] = param
-				endpoint = strings.Replace(endpoint, rep, param.String(), 1)
-				sp = strings.Split(endpoint, ".")
+		for _, epPart := range epParts {
+			if strings.Contains(epPart, "$") {
+				paramsMap[epPart[1:]] = param
+				endpoint = strings.Replace(endpoint, epPart, param.String(), 1)
+				epParts = strings.Split(endpoint, ".")
 				break
 			}
 		}
@@ -46,12 +46,16 @@ func newMethod(serviceName, serviceLabel, label, prefix, endpoint string, params
 		LabelValue:       label,
 		ServiceName:      serviceName,
 		ServiceLabel:     serviceLabel,
-		Prefix:           prefix,
+		HttpPrefix:       httpPrefix,
 		HttpMethod:       "",
 		GenericEndpoint:  genericEndpoint,
 		SpecificEndpoint: endpoint,
 		Params:           paramsMap,
 	}
+}
+
+func (p *method) updateParams(params map[string]fmt.Stringer) {
+	p.Params = params
 }
 
 func (p *method) Public() Method {

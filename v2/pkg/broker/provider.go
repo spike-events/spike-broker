@@ -37,7 +37,7 @@ type Provider interface {
 	SubscribeAll(s Subscription) (interface{}, error)
 
 	// Monitor informs the Provider how to handle a rids.Resource event
-	Monitor(monitoringGroup string, s Subscription) (interface{}, error)
+	Monitor(monitoringGroup string, s Subscription) (func(), error)
 
 	// Get calls a rids.Resource through the Provider without a paylod
 	Get(p rids.Pattern, rs interface{}, token ...string) Error

@@ -8,22 +8,29 @@ import (
 // Resource rids base
 type Resource interface {
 	Name() string
+	WSPrefix() string
 	Patterns(Resource) []Pattern
 }
 
 // Base rid
 type Base struct {
-	name   string
-	label  string
-	prefix string
+	name       string
+	label      string
+	httpPrefix string
+	wsPrefix   string
 }
 
-func NewRid(name, label string, prefix string) Base {
-	return Base{name, label, prefix}
+func NewRid(name, label, httpPrefix, wsPrefix string) Base {
+	return Base{
+		name:       name,
+		label:      label,
+		httpPrefix: httpPrefix,
+		wsPrefix:   wsPrefix,
+	}
 }
 
 func (b *Base) NewMethod(label, endpoint string, params ...fmt.Stringer) Method {
-	return newMethod(b.name, b.label, label, b.prefix, endpoint, params...)
+	return newMethod(b.name, b.label, label, b.httpPrefix, endpoint, params...)
 }
 
 func (b *Base) ByID(id ...fmt.Stringer) Pattern {
@@ -33,6 +40,10 @@ func (b *Base) ByID(id ...fmt.Stringer) Pattern {
 // Name retorna nome do serviço
 func (b *Base) Name() string {
 	return b.name
+}
+
+func (b *Base) WSPrefix() string {
+	return b.wsPrefix
 }
 
 // Patterns retorna endpoints registrados

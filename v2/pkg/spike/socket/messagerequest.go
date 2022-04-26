@@ -2,72 +2,48 @@ package socket
 
 import (
 	"encoding/json"
-	"fmt"
-	"strings"
 
-	"github.com/spike-events/spike-broker/v2/pkg/models"
-	"github.com/spike-events/spike-broker/v2/pkg/rids"
-	"github.com/spike-events/spike-broker/v2/pkg/service/request"
-	"github.com/spike-events/spike-broker/v2/pkg/utils"
+	"github.com/spike-events/spike-broker/v2/pkg/broker"
+	spikeutils "github.com/spike-events/spike-broker/v2/pkg/spike-utils"
 )
 
 type WSMessageRequest struct {
 	WSMessage
 }
 
-func (m *WSMessageRequest) Handle(ws *WSConnection) *request.Error {
-	values := strings.Split(m.Endpoint, ".")
-	permission := models.HavePermissionRequest{
-		Service:  values[0],
-		Endpoint: strings.Join(values[1:], "."),
-		Method:   m.Method,
-	}
-
-	var endpoint *rids.Pattern
-	for _, auth := range ws.auth {
-		if auth.Service != permission.Service {
-			continue
+func (m *WSMessageRequest) Handle(ws WSConnection) broker.Error {
+	if len(ws.GetToken()) != 0 {
+		token, valid := ws.Authenticator().ValidateToken(ws.GetToken())
+		if !valid {
+			return broker.ErrorStatusUnauthorized
 		}
-
-		endpoint = utils.PatternFromEndpoint(auth.Patterns, &permission)
-		break
+		ws.SetSessionToken(token)
 	}
 
-	if endpoint == nil || m.Method == "INTERNAL" {
-		return &request.ErrorStatusForbidden
-	}
+	p := spikeutils.PatternFromEndpoint(ws.GetHandlers(), m.SpecificEndpoint())
+	call := broker.NewCall(p, m.Data)
+	call.SetToken(ws.GetToken())
+	call.SetProvider(ws.Broker())
 
-	values = strings.Split(endpoint.Endpoint, ".")
-	permission = models.HavePermissionRequest{
-		Service:  permission.Service,
-		Endpoint: fmt.Sprintf("%s.%s", permission.Service, endpoint.Endpoint),
-		Method:   m.Method,
-	}
-	if endpoint.Authenticated && len(ws.auth) > 0 {
-
-		callAuth := request.NewRequest(permission)
-		callAuth.Token = ws.token
-
-		if !ws.auth[0].Auth.UserHavePermission(callAuth) {
-			return &request.ErrorStatusForbidden
-		}
+	if !ws.Authorizer().HasPermission(call) {
+		return broker.ErrorStatusForbidden
 	}
 
 	var response interface{}
-	rErr := ws.Broker().Request(endpoint, request.NewRequest(m.Data), &response, ws.token)
+	rErr := ws.Broker().Request(p, m.Data, &response, ws.GetToken())
 	if rErr != nil {
 		return rErr
 	}
 
 	data, err := json.Marshal(response)
 	if err != nil {
-		return request.InternalError(err)
+		return broker.InternalError(err)
 	}
 	m.Type = WSMessageTypeResponse
 	m.Data = string(data)
 	err = ws.WSConnection().WriteJSON(m)
 	if err != nil {
-		return request.InternalError(err)
+		return broker.InternalError(err)
 	}
 	return nil
 }

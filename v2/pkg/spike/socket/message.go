@@ -1,7 +1,9 @@
 package socket
 
 import (
-	"github.com/spike-events/spike-broker/v2/pkg/service/request"
+	"fmt"
+
+	"github.com/spike-events/spike-broker/v2/pkg/broker"
 )
 
 type WSMessageType string
@@ -19,7 +21,7 @@ const (
 )
 
 type WSMessageHandler interface {
-	Handle(c *WSConnection) *request.Error
+	Handle(c WSConnection) broker.Error
 }
 
 type WSMessage struct {
@@ -32,11 +34,15 @@ type WSMessage struct {
 	Data     interface{}   `json:"data,omitempty"`
 }
 
+func (w *WSMessage) SpecificEndpoint() string {
+	return fmt.Sprintf("%s.%s", w.Endpoint, w.Method)
+}
+
 type wsMessageNilHandler struct {
 	WSMessage
 }
 
-func (m *wsMessageNilHandler) Handle(c *WSConnection) *request.Error {
+func (m *wsMessageNilHandler) Handle(c WSConnection) broker.Error {
 	return nil
 }
 

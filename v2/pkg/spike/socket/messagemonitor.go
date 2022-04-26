@@ -1,88 +1,55 @@
 package socket
 
 import (
-	"fmt"
-	"strings"
-
-	"github.com/spike-events/spike-broker/v2/pkg/models"
-	"github.com/spike-events/spike-broker/v2/pkg/rids"
-	"github.com/spike-events/spike-broker/v2/pkg/service/request"
-	"github.com/spike-events/spike-broker/v2/pkg/utils"
+	"github.com/spike-events/spike-broker/v2/pkg/broker"
+	spikeutils "github.com/spike-events/spike-broker/v2/pkg/spike-utils"
 )
 
 type WSMessageMonitor struct {
 	WSMessage
 }
 
-func (m *WSMessageMonitor) Handle(ws *WSConnection) *request.Error {
+func (m *WSMessageMonitor) Handle(ws WSConnection) broker.Error {
 
-	if len(ws.token) != 0 {
-		type rs struct {
-			Token string
+	if len(ws.GetToken()) != 0 {
+		token, valid := ws.Authenticator().ValidateToken(ws.GetToken())
+		if !valid {
+			return broker.ErrorStatusUnauthorized
 		}
-		var result rs
-		rErr := ws.Broker().Request(rids.Route().ValidateToken(), nil, &result, ws.token)
-		if rErr != nil {
-			return rErr
-		}
-		ws.token = result.Token
+		ws.SetSessionToken(token)
 	}
 
-	values := strings.Split(m.Endpoint, ".")
-	permission := models.HavePermissionRequest{
-		Service:  values[0],
-		Endpoint: strings.Join(values[1:], "."),
-		Method:   m.Method,
+	p := spikeutils.PatternFromEndpoint(ws.GetHandlers(), m.SpecificEndpoint())
+	call := broker.NewCall(p, m.Data)
+	call.SetToken(ws.GetToken())
+	call.SetProvider(ws.Broker())
+
+	if !ws.Authorizer().HasPermission(call) {
+		return broker.ErrorStatusForbidden
 	}
 
-	var endpoint *rids.Pattern
-	for _, auth := range ws.auth {
-		if auth.Service != permission.Service {
-			continue
-		}
-
-		endpoint = utils.PatternFromEndpoint(auth.Patterns, &permission)
-		break
-	}
-
-	if endpoint == nil || m.Method == "INTERNAL" {
-		return &request.ErrorStatusForbidden
-	}
-
-	values = strings.Split(endpoint.Endpoint, ".")
-	permission = models.HavePermissionRequest{
-		Service:  permission.Service,
-		Endpoint: fmt.Sprintf("%s.%s", permission.Service, endpoint.Endpoint),
-		Method:   m.Method,
-	}
-	if endpoint.Authenticated && len(ws.auth) > 0 {
-
-		callAuth := request.NewRequest(permission)
-		callAuth.Token = string(ws.token)
-
-		if !ws.auth[0].Auth.UserHavePermission(callAuth) {
-			return &request.ErrorStatusForbidden
-		}
-	}
-
-	localHandler := func(r *request.Call) {
+	localHandler := func(r broker.Call) {
 		wsMsg := &WSMessage{
 			ID:       m.ID,
 			Type:     WSMessageTypePublish,
 			Endpoint: m.Endpoint,
-			Data:     string(r.Data),
+			Data:     string(r.RawData()),
 		}
 		err := ws.WSConnection().WriteJSON(wsMsg)
 		if err != nil {
-			r.Error(err)
+			r.InternalError(err)
 			return
 		}
 		r.OK()
 	}
 
-	unsubscribe, err := ws.Broker().Monitor(ws.ID, endpoint, localHandler)
+	sub := broker.Subscription{
+		Resource: p,
+		Handler:  localHandler,
+	}
+	unsubscribe, err := ws.Broker().Monitor(ws.GetID().String(), sub)
 	if err != nil {
-		return request.InternalError(err)
+		return broker.InternalError(err)
 	}
 
 	go func() {

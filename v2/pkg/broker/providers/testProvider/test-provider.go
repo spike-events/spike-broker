@@ -13,10 +13,10 @@ type RequestMock func(p rids.Pattern, payload interface{}, res interface{}, toke
 type RequestRawMock func(payload json.RawMessage, overrideTimeout ...time.Duration) (json.RawMessage, broker.Error)
 
 type Mocks struct {
-	requests     map[string]RequestMock
-	requestsRaw  map[string]RequestRawMock
-	publishes    map[string]RequestMock
-	publishesRaw map[string]RequestRawMock
+	Requests     map[string]RequestMock
+	RequestsRaw  map[string]RequestRawMock
+	Publishes    map[string]RequestMock
+	PublishesRaw map[string]RequestRawMock
 }
 
 type Provider interface {
@@ -50,10 +50,10 @@ func NewTestProvider(ctx context.Context, cancel context.CancelFunc) *testProvid
 			ctx:    ctx,
 			cancel: cancel,
 			mocks: Mocks{
-				requests:     make(map[string]RequestMock),
-				requestsRaw:  make(map[string]RequestRawMock),
-				publishes:    make(map[string]RequestMock),
-				publishesRaw: make(map[string]RequestRawMock),
+				Requests:     make(map[string]RequestMock),
+				RequestsRaw:  make(map[string]RequestRawMock),
+				Publishes:    make(map[string]RequestMock),
+				PublishesRaw: make(map[string]RequestRawMock),
 			},
 			subscriptions: make(map[string]broker.Subscription),
 			monitors:      make(map[string]map[string]broker.Subscription),
@@ -84,19 +84,19 @@ func (t *testProvider) requestRaw(
 }
 
 func (t *testProvider) Request(p rids.Pattern, payload interface{}, rs interface{}, token ...string) broker.Error {
-	return t.request(t.mocks.requests, p, payload, rs, token...)
+	return t.request(t.mocks.Requests, p, payload, rs, token...)
 }
 
 func (t *testProvider) RequestRaw(subject string, data json.RawMessage, overrideTimeout ...time.Duration) (json.RawMessage, broker.Error) {
-	return t.requestRaw(t.mocks.requestsRaw, subject, data, overrideTimeout...)
+	return t.requestRaw(t.mocks.RequestsRaw, subject, data, overrideTimeout...)
 }
 
 func (t *testProvider) Publish(p rids.Pattern, payload interface{}, token ...string) error {
-	return t.request(t.mocks.publishes, p, payload, nil, token...)
+	return t.request(t.mocks.Publishes, p, payload, nil, token...)
 }
 
 func (t *testProvider) PublishRaw(subject string, data json.RawMessage) error {
-	_, err := t.requestRaw(t.mocks.publishesRaw, subject, data)
+	_, err := t.requestRaw(t.mocks.PublishesRaw, subject, data)
 	return err
 }
 
@@ -122,12 +122,12 @@ func (t *testProvider) SubscribeAll(s broker.Subscription) (interface{}, error) 
 	return t, nil
 }
 
-func (t *testProvider) Monitor(monitoringGroup string, s broker.Subscription) (interface{}, error) {
+func (t *testProvider) Monitor(monitoringGroup string, s broker.Subscription) (func(), error) {
 	var ok bool
 	var m map[string]broker.Subscription
 	if m, ok = t.monitors[monitoringGroup]; !ok {
 		m = make(map[string]broker.Subscription)
 	}
 	t.subscribe(m, s)
-	return t, nil
+	return func() {}, nil
 }
