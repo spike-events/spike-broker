@@ -9,7 +9,7 @@ import (
 )
 
 type Config struct {
-	Repository interface{}
+	Repository Repository
 	Broker     broker.Provider
 	Logger     Logger
 }
