@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
 	"github.com/spike-events/spike-broker/v2/pkg/broker"
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
@@ -39,9 +40,10 @@ func init() {
 }
 
 type Provider struct {
-	config  Config
-	handler func(p rids.Pattern, payload []byte)
-	debug   bool
+	config    Config
+	handler   func(p rids.Pattern, payload []byte, replyEndpoint string)
+	debug     bool
+	localNats *server.Server
 }
 
 func (s *Provider) connError(con *nats.Conn, err error) {
@@ -74,13 +76,20 @@ func (s *Provider) newNatsBus() (*nats.Conn, error) {
 	return bus, nil
 }
 
-func NewNatsConn(config Config) broker.Provider {
+func NewNatsProvider(config Config) broker.Provider {
 	natsConn := &Provider{
 		config: config,
 	}
 
 	m.Lock()
 	defer m.Unlock()
+
+	if config.LocalNats {
+		opts := &defaultNatsOptions
+		opts.Debug = config.LocalNatsDebug
+		opts.Trace = config.LocalNatsTrace
+		natsConn.localNats = runServer(opts)
+	}
 
 	if globalConnections == nil {
 		for range make([]int, MaxConns) {
@@ -123,6 +132,9 @@ func (s *Provider) Close() {
 			bus.Close()
 		}
 	})
+	if s.localNats != nil {
+		s.localNats.Shutdown()
+	}
 }
 
 func (s *Provider) requestConn() *nats.Conn {
@@ -391,4 +403,32 @@ func (s *Provider) getTimeout(respStr string) (*time.Duration, broker.Error) {
 	}
 
 	return nil, nil
+}
+
+var defaultNatsOptions = server.Options{
+	Host:       "127.0.0.1",
+	Port:       4222,
+	MaxPayload: 100 * 1024 * 1024,
+	MaxPending: 100 * 1024 * 1024,
+}
+
+func runServer(opts *server.Options) *server.Server {
+	if opts == nil {
+		opts = &defaultNatsOptions
+	}
+	s, err := server.NewServer(opts)
+	if err != nil {
+		panic(err)
+	}
+
+	s.ConfigureLogger()
+
+	// Run server in Go routine.
+	go s.Start()
+
+	// Wait for accept loop(s) to be started
+	if !s.ReadyForConnections(10 * time.Second) {
+		panic("Unable to start Broker Server in Go Routine")
+	}
+	return s
 }
