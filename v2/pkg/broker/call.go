@@ -19,7 +19,7 @@ type CallHandler func(c Call)
 
 type Call interface {
 	RawToken() string
-	RawData() []byte
+	RawData() interface{}
 	Reply() string
 	Provider() Provider
 	Endpoint() rids.Pattern
@@ -29,7 +29,7 @@ type Call interface {
 	ParseData(v interface{}) error
 	ParseQuery(q interface{}) error
 
-	ToJSON() []byte
+	ToJSON() json.RawMessage
 	FromJSON(data json.RawMessage, provider Provider, reply string) error
 	Timeout(timeout time.Duration)
 
@@ -53,7 +53,6 @@ func NewCall(p rids.Pattern, data interface{}) Call {
 	var err error
 	switch data.(type) {
 	case []byte:
-		panic("invalid data")
 	case nil:
 	default:
 		data = spike_utils.PointerFromInterface(data)
@@ -69,6 +68,16 @@ func NewCall(p rids.Pattern, data interface{}) Call {
 	}
 }
 
+func NewCallFromJSON(callJSON json.RawMessage) (Call, error) {
+	// TODO: Support v1 JSON version
+	var c call
+	err := json.Unmarshal(callJSON, &c)
+	if err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
 func NewHTTPCall(p rids.Pattern, token string, data interface{}, params map[string]fmt.Stringer, query interface{}) Call {
 	c := NewCall(p, data).(*call)
 	c.EndpointPattern.SetParams(params)
@@ -79,13 +88,37 @@ func NewHTTPCall(p rids.Pattern, token string, data interface{}, params map[stri
 
 // CallRequest handler
 type call struct {
-	Data            []byte       `json:"data"`
+	Data            interface{}  `json:"data"`
 	ReplyStr        string       `json:"reply"`
-	EndpointPattern rids.Pattern `json:"endpoint"`
+	EndpointPattern rids.Pattern `json:"endpointPattern"`
 	Token           string       `json:"token"`
 
 	provider Provider
 	err      Error
+}
+
+func (c *call) UnmarshalJSON(data []byte) error {
+	type callInnerType struct {
+		Data            interface{}     `json:"data"`
+		ReplyStr        string          `json:"reply"`
+		EndpointPattern json.RawMessage `json:"endpointPattern"`
+		Token           string          `json:"token"`
+	}
+	var callInner callInnerType
+	err := json.Unmarshal(data, &callInner)
+	if err != nil {
+		return err
+	}
+
+	pattern, err := rids.UnmarshalPattern(callInner.EndpointPattern)
+	if err != nil {
+		return err
+	}
+	c.Data = callInner.Data
+	c.ReplyStr = callInner.ReplyStr
+	c.EndpointPattern = pattern
+	c.Token = callInner.Token
+	return nil
 }
 
 func (c *call) Endpoint() rids.Pattern {
@@ -104,7 +137,7 @@ func (c *call) Reply() string {
 	return c.ReplyStr
 }
 
-func (c *call) RawData() []byte {
+func (c *call) RawData() interface{} {
 	return c.Data
 }
 
@@ -149,11 +182,16 @@ func (c *call) PathParam(key string) string {
 
 // ParseData data
 func (c *call) ParseData(v interface{}) error {
-	return json.Unmarshal(c.Data, v)
+	switch c.Data.(type) {
+	case []byte:
+		return json.Unmarshal(c.Data.(json.RawMessage), v)
+	}
+	v = c.Data
+	return nil
 }
 
 // ToJSON CallRequest
-func (c *call) ToJSON() []byte {
+func (c *call) ToJSON() json.RawMessage {
 	data, err := json.Marshal(c)
 	if err != nil {
 		panic(err)

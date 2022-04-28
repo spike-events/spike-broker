@@ -22,8 +22,8 @@ func (e empty) GetError() Error {
 	return nil
 }
 
-func (e empty) RawData() []byte {
-	return []byte{}
+func (e empty) RawData() interface{} {
+	return ""
 }
 
 func (e empty) Reply() string {
@@ -76,8 +76,8 @@ func (e empty) ParseData(v interface{}) error {
 	return nil
 }
 
-func (e empty) ToJSON() []byte {
-	return []byte("")
+func (e empty) ToJSON() json.RawMessage {
+	return json.RawMessage{}
 }
 
 func (e empty) File(f *dataurl.DataURL) {}
