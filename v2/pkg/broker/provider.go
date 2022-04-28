@@ -25,7 +25,7 @@ type Subscription struct {
 // any Service announced on Spike network
 type Provider interface {
 	// SetHandler sets the Spike handler for arriving messages
-	SetHandler(handler func(p rids.Pattern, payload []byte))
+	SetHandler(handler func(p rids.Pattern, payload []byte, replyEndpoint string))
 
 	// Close ends the connection to the Provider
 	Close()

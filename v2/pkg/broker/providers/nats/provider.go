@@ -109,7 +109,7 @@ func NewNatsProvider(config Config) broker.Provider {
 	return natsConn
 }
 
-func (s *Provider) SetHandler(handler func(p rids.Pattern, payload []byte)) {
+func (s *Provider) SetHandler(handler func(p rids.Pattern, payload []byte, replyEndpoint string)) {
 	s.handler = handler
 }
 
@@ -162,7 +162,7 @@ func (s *Provider) subscribe(pattern rids.Pattern) (string, string, chan *nats.M
 	go func() {
 		p := pattern
 		for msg := range msgs {
-			go s.handler(p, msg.Data)
+			go s.handler(p, msg.Data, msg.Reply)
 		}
 		s.printDebug("nats: channel closed on endpoint %s", p.EndpointName())
 	}()

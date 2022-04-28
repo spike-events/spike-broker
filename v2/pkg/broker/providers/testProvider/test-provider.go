@@ -34,7 +34,7 @@ type testProvider struct {
 	monitors      map[string]map[string]broker.Subscription
 }
 
-func (t *testProvider) SetHandler(_ func(p rids.Pattern, payload []byte)) {}
+func (t *testProvider) SetHandler(_ func(p rids.Pattern, payload []byte, replyEndpoint string)) {}
 
 func (t *testProvider) SetMocks(mocks Mocks) {
 	t.mocks = mocks
