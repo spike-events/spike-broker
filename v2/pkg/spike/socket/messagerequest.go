@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 
 	"github.com/spike-events/spike-broker/v2/pkg/broker"
-	spikeutils "github.com/spike-events/spike-broker/v2/pkg/spike-utils"
 )
 
 type WSMessageRequest struct {
@@ -20,7 +19,7 @@ func (m *WSMessageRequest) Handle(ws WSConnection) broker.Error {
 		ws.SetSessionToken(token)
 	}
 
-	p := spikeutils.PatternFromEndpoint(ws.GetHandlers(), m.SpecificEndpoint())
+	p := PatternFromEndpoint(ws.GetHandlers(), m.SpecificEndpoint())
 	call := broker.NewCall(p, m.Data)
 	call.SetToken(ws.GetToken())
 	call.SetProvider(ws.Broker())
