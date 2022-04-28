@@ -20,12 +20,11 @@ type Base struct {
 	wsPrefix   string
 }
 
-func NewRid(name, label, httpPrefix, wsPrefix string) Base {
+func NewRid(name, label, httpPrefix string) Base {
 	return Base{
 		name:       name,
 		label:      label,
 		httpPrefix: httpPrefix,
-		wsPrefix:   wsPrefix,
 	}
 }
 

@@ -1,8 +1,11 @@
 package rids
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
+
+	spikeutils "github.com/spike-events/spike-broker/v2/pkg/spike-utils"
 )
 
 type Method interface {
@@ -16,15 +19,46 @@ type Method interface {
 }
 
 type method struct {
-	LabelValue       string
-	ServiceName      string
-	ServiceLabel     string
-	HttpPrefix       string
-	HttpMethod       string
-	GenericEndpoint  string
-	SpecificEndpoint string
-	Params           map[string]fmt.Stringer
-	IsPublic         bool
+	LabelValue       string                  `json:"labelValue"`
+	ServiceName      string                  `json:"serviceName"`
+	ServiceLabel     string                  `json:"serviceLabel"`
+	HttpPrefix       string                  `json:"httpPrefix"`
+	HttpMethod       string                  `json:"httpMethod"`
+	GenericEndpoint  string                  `json:"genericEndpoint"`
+	SpecificEndpoint string                  `json:"specificEndpoint"`
+	Params           map[string]fmt.Stringer `json:"params"`
+	IsPublic         bool                    `json:"isPublic"`
+}
+
+func (p *method) UnmarshalJSON(data []byte) error {
+	type methodInnerType struct {
+		LabelValue       string            `json:"labelValue"`
+		ServiceName      string            `json:"serviceName"`
+		ServiceLabel     string            `json:"serviceLabel"`
+		HttpPrefix       string            `json:"httpPrefix"`
+		HttpMethod       string            `json:"httpMethod"`
+		GenericEndpoint  string            `json:"genericEndpoint"`
+		SpecificEndpoint string            `json:"specificEndpoint"`
+		Params           map[string]string `json:"params"`
+		IsPublic         bool              `json:"isPublic"`
+	}
+	var methodInner methodInnerType
+	if err := json.Unmarshal(data, &methodInner); err != nil {
+		return err
+	}
+	p.LabelValue = methodInner.LabelValue
+	p.ServiceName = methodInner.ServiceName
+	p.ServiceLabel = methodInner.ServiceLabel
+	p.HttpPrefix = methodInner.HttpPrefix
+	p.HttpMethod = methodInner.HttpMethod
+	p.GenericEndpoint = methodInner.GenericEndpoint
+	p.SpecificEndpoint = methodInner.SpecificEndpoint
+	p.IsPublic = methodInner.IsPublic
+	p.Params = make(map[string]fmt.Stringer)
+	for name, value := range methodInner.Params {
+		p.Params[name] = spikeutils.Stringer(value)
+	}
+	return nil
 }
 
 func newMethod(serviceName, serviceLabel, label, httpPrefix, endpoint string, params ...fmt.Stringer) *method {
@@ -33,11 +67,20 @@ func newMethod(serviceName, serviceLabel, label, httpPrefix, endpoint string, pa
 	var paramsMap = make(map[string]fmt.Stringer)
 	for _, param := range params {
 		for _, epPart := range epParts {
-			if strings.Contains(epPart, "$") {
+			if strings.Contains(epPart, "$") && len(epPart) > 1 {
 				paramsMap[epPart[1:]] = param
 				endpoint = strings.Replace(endpoint, epPart, param.String(), 1)
 				epParts = strings.Split(endpoint, ".")
 				break
+			}
+		}
+	}
+
+	for _, epPart := range epParts {
+		if strings.Contains(epPart, "$") {
+			epPartName := epPart[1:]
+			if _, ok := paramsMap[epPartName]; !ok {
+				paramsMap[epPartName] = spikeutils.Stringer("")
 			}
 		}
 	}
@@ -59,7 +102,9 @@ func (p *method) updateParams(params map[string]fmt.Stringer) {
 }
 
 func (p *method) Public() Method {
-	p.IsPublic = true
+	if p.HttpMethod != "INTERNAL" {
+		p.IsPublic = true
+	}
 	return p
 }
 

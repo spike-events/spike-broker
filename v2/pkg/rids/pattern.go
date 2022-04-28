@@ -1,6 +1,7 @@
 package rids
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -29,9 +30,18 @@ func newPattern(m *method) Pattern {
 	}
 }
 
+func UnmarshalPattern(data json.RawMessage) (Pattern, error) {
+	var p pattern
+	err := json.Unmarshal(data, &p)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
 type pattern struct {
-	MethodValue      *method
-	QueryParamsValue interface{}
+	MethodValue      *method     `json:"methodValue"`
+	QueryParamsValue interface{} `json:"queryParamsValue"`
 }
 
 func (p *pattern) Clone() Pattern {
