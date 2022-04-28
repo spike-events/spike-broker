@@ -57,7 +57,7 @@ var (
 	ErrorStatusForbidden          Error = &errorRequest{"forbidden", http.StatusForbidden, nil}
 	ErrorInvalidParams            Error = &errorRequest{"invalid params", http.StatusBadRequest, nil}
 	ErrorInternalServerError      Error = &errorRequest{"internal error", http.StatusInternalServerError, nil}
-	ErrorAccessDenied             Error = &errorRequest{"access denied", http.StatusUnauthorized, nil}
+	ErrorAccessDenied             Error = &errorRequest{"access denied", http.StatusForbidden, nil}
 	ErrorTimeout                  Error = &errorRequest{"timeout", http.StatusRequestTimeout, nil}
 )
 

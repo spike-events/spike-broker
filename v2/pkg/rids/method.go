@@ -30,7 +30,7 @@ type method struct {
 	IsPublic         bool                    `json:"isPublic"`
 }
 
-func (p *method) UnmarshalJSON(data []byte) error {
+func (m *method) UnmarshalJSON(data []byte) error {
 	type methodInnerType struct {
 		LabelValue       string            `json:"labelValue"`
 		ServiceName      string            `json:"serviceName"`
@@ -46,17 +46,17 @@ func (p *method) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &methodInner); err != nil {
 		return err
 	}
-	p.LabelValue = methodInner.LabelValue
-	p.ServiceName = methodInner.ServiceName
-	p.ServiceLabel = methodInner.ServiceLabel
-	p.HttpPrefix = methodInner.HttpPrefix
-	p.HttpMethod = methodInner.HttpMethod
-	p.GenericEndpoint = methodInner.GenericEndpoint
-	p.SpecificEndpoint = methodInner.SpecificEndpoint
-	p.IsPublic = methodInner.IsPublic
-	p.Params = make(map[string]fmt.Stringer)
+	m.LabelValue = methodInner.LabelValue
+	m.ServiceName = methodInner.ServiceName
+	m.ServiceLabel = methodInner.ServiceLabel
+	m.HttpPrefix = methodInner.HttpPrefix
+	m.HttpMethod = methodInner.HttpMethod
+	m.GenericEndpoint = methodInner.GenericEndpoint
+	m.SpecificEndpoint = methodInner.SpecificEndpoint
+	m.IsPublic = methodInner.IsPublic
+	m.Params = make(map[string]fmt.Stringer)
 	for name, value := range methodInner.Params {
-		p.Params[name] = spikeutils.Stringer(value)
+		m.Params[name] = spikeutils.Stringer(value)
 	}
 	return nil
 }
@@ -97,44 +97,44 @@ func newMethod(serviceName, serviceLabel, label, httpPrefix, endpoint string, pa
 	}
 }
 
-func (p *method) updateParams(params map[string]fmt.Stringer) {
-	p.Params = params
+func (m *method) updateParams(params map[string]fmt.Stringer) {
+	m.Params = params
 }
 
-func (p *method) Public() Method {
-	if p.HttpMethod != "INTERNAL" {
-		p.IsPublic = true
+func (m *method) Public() Method {
+	if m.HttpMethod != "INTERNAL" {
+		m.IsPublic = true
 	}
-	return p
+	return m
 }
 
-func (p *method) Get() Pattern {
-	p.HttpMethod = "GET"
-	return newPattern(p)
+func (m *method) Get() Pattern {
+	m.HttpMethod = "GET"
+	return newPattern(m)
 }
 
-func (p *method) Post() Pattern {
-	p.HttpMethod = "POST"
-	return newPattern(p)
+func (m *method) Post() Pattern {
+	m.HttpMethod = "POST"
+	return newPattern(m)
 }
 
-func (p *method) Put() Pattern {
-	p.HttpMethod = "PUT"
-	return newPattern(p)
+func (m *method) Put() Pattern {
+	m.HttpMethod = "PUT"
+	return newPattern(m)
 }
 
-func (p *method) Patch() Pattern {
-	p.HttpMethod = "PATCH"
-	return newPattern(p)
+func (m *method) Patch() Pattern {
+	m.HttpMethod = "PATCH"
+	return newPattern(m)
 }
 
-func (p *method) Delete() Pattern {
-	p.HttpMethod = "DELETE"
-	return newPattern(p)
+func (m *method) Delete() Pattern {
+	m.HttpMethod = "DELETE"
+	return newPattern(m)
 }
 
-func (p *method) Internal() Pattern {
-	p.IsPublic = false
-	p.HttpMethod = "INTERNAL"
-	return newPattern(p)
+func (m *method) Internal() Pattern {
+	m.IsPublic = false
+	m.HttpMethod = "INTERNAL"
+	return newPattern(m)
 }

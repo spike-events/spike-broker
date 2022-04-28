@@ -28,3 +28,7 @@ func (s *serviceTestRid) TestReply(id ...fmt.Stringer) rids.Pattern {
 func (s *serviceTestRid) ForbiddenCall() rids.Pattern {
 	return s.NewMethod("Emulate an endpoint that cannot be accessed", "forbidden").Internal()
 }
+
+func (s *serviceTestRid) FromMock() rids.Pattern {
+	return s.NewMethod("Emulate an endpoint to be used on mock", "from.mock").Internal()
+}

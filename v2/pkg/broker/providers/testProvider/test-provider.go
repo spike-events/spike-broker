@@ -25,8 +25,7 @@ type Provider interface {
 }
 
 type testProvider struct {
-	ctx    context.Context
-	cancel context.CancelFunc
+	ctx context.Context
 
 	mocks Mocks
 
@@ -44,11 +43,10 @@ var testProviderImpl *testProvider
 
 // NewTestProvider builds the default test infrastructure provider. It implements the broker.Provider interface and
 // some helpers to allow unit testing broker.Subscribe
-func NewTestProvider(ctx context.Context, cancel context.CancelFunc) *testProvider {
+func NewTestProvider(ctx context.Context) Provider {
 	if testProviderImpl == nil {
 		testProviderImpl = &testProvider{
-			ctx:    ctx,
-			cancel: cancel,
+			ctx: ctx,
 			mocks: Mocks{
 				Requests:     make(map[string]RequestMock),
 				RequestsRaw:  make(map[string]RequestRawMock),

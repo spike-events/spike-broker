@@ -9,41 +9,18 @@ type accessRequest struct {
 	callRequest
 }
 
-func (a accessRequest) GetError() broker.Error {
-	//TODO implement me
-	panic("implement me")
+func (a *accessRequest) AccessDenied() {
+	a.result = broker.ErrorAccessDenied
+	a.errF(a.result)
 }
 
-func (a accessRequest) Methods() []string {
-	//TODO implement me
-	panic("implement me")
+func (a *accessRequest) AccessGranted() {
+	a.okF()
 }
 
-func (a accessRequest) IsError() bool {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (a accessRequest) RequestIsGet() *bool {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (a accessRequest) Access(get bool, methods ...string) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (a accessRequest) AccessDenied() {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (a accessRequest) AccessGranted() {
-	//TODO implement me
-	panic("implement me")
-}
-
-func NewAccess(p rids.Pattern, payload interface{}, token string, okF func(interface{}), errF func(interface{})) broker.Access {
-	return &accessRequest{}
+func NewAccess(p rids.Pattern, payload interface{}, token string, okF func(...interface{}), errF func(interface{})) broker.Access {
+	c := NewCall(p, payload, token, okF, errF)
+	return &accessRequest{
+		callRequest: *c.(*callRequest),
+	}
 }

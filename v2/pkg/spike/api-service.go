@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/spike-events/spike-broker/v2/pkg/broker"
-	"github.com/spike-events/spike-broker/v2/pkg/broker/providers/testProvider"
 	"github.com/spike-events/spike-broker/v2/pkg/service"
 )
 
@@ -49,15 +48,4 @@ type APIService interface {
 // mechanism using
 func NewAPIService() APIService {
 	return &serviceImpl{}
-}
-
-// NewTest returns an APIService implementation that runs unit tests based on specified parameters
-func NewTest(startRepository service.Repository, startRequestMocks testProvider.RequestMock) *testServiceImpl {
-	if serviceTestImplInstance == nil {
-		serviceTestImplInstance = &testServiceImpl{
-			startRepository:   startRepository,
-			startRequestMocks: startRequestMocks,
-		}
-	}
-	return serviceTestImplInstance
 }

@@ -15,52 +15,57 @@ type ServiceTest struct {
 	conf service.Config
 }
 
-func (s ServiceTest) SetConfig(config service.Config) error {
+func (s *ServiceTest) SetConfig(config service.Config) error {
 	s.conf = config
 	return nil
 }
 
-func (s ServiceTest) Start(key uuid.UUID, ctx context.Context) error {
+func (s *ServiceTest) Start(key uuid.UUID, ctx context.Context) error {
 	s.key = key
 	s.ctx = ctx
 	return nil
 }
 
-func (s ServiceTest) Stop() chan bool {
+func (s *ServiceTest) Stop() chan bool {
 	return make(chan bool, 1)
 }
 
-func (s ServiceTest) Handlers() []broker.Subscription {
+func (s *ServiceTest) Handlers() []broker.Subscription {
 	return []broker.Subscription{
 		{
 			Resource:   ServiceTestRid().TestReply(),
 			Handler:    s.reply,
 			Validators: []broker.AccessHandler{s.validateReply},
 		},
+		{
+			Resource:   ServiceTestRid().FromMock(),
+			Handler:    s.fromMock,
+			Validators: nil,
+		},
 	}
 }
 
-func (s ServiceTest) Monitors() map[string]broker.Subscription {
+func (s *ServiceTest) Monitors() map[string]broker.Subscription {
 	return nil
 }
 
-func (s ServiceTest) Key() uuid.UUID {
+func (s *ServiceTest) Key() uuid.UUID {
 	return s.key
 }
 
-func (s ServiceTest) Rid() rids.Resource {
+func (s *ServiceTest) Rid() rids.Resource {
 	return ServiceTestRid()
 }
 
-func (s ServiceTest) Broker() broker.Provider {
+func (s *ServiceTest) Broker() broker.Provider {
 	return s.conf.Broker
 }
 
-func (s ServiceTest) Repository() service.Repository {
+func (s *ServiceTest) Repository() service.Repository {
 	return s.conf.Repository
 }
 
-func (s ServiceTest) Logger() service.Logger {
+func (s *ServiceTest) Logger() service.Logger {
 	return s.conf.Logger
 }
 
@@ -78,6 +83,18 @@ func (s *ServiceTest) reply(c broker.Call) {
 		c.InternalError(err)
 		return
 	}
+	c.OK(&id)
+}
+
+func (s *ServiceTest) fromMock(c broker.Call) {
+	id, _ := uuid.NewV4()
+	var replyID uuid.UUID
+	err := s.Broker().Request(ServiceTestRid().TestReply(id), id, &replyID)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
 	c.OK(&id)
 }
 
