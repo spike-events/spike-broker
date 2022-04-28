@@ -51,13 +51,9 @@ func (u *UnitTest) SetupSuite() {
 
 	// Initialize Spike providing Service
 	spkService := spike.NewAPITestService(
-		nil,
-		testProvider.Mocks{
-			Requests:     map[string]testProvider.RequestMock{},
-			RequestsRaw:  map[string]testProvider.RequestRawMock{},
-			Publishes:    map[string]testProvider.RequestMock{},
-			PublishesRaw: map[string]testProvider.RequestRawMock{},
-		})
+		repo,
+		testProvider.Mocks{},
+	)
 	err = spkService.Initialize(spike.Options{
 		Service:       NewServiceTest(),
 		Repository:    repo,
