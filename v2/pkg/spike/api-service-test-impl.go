@@ -97,7 +97,7 @@ func (s *testServiceImpl) Stop() error {
 
 func (s *testServiceImpl) TestRequestOrPublish(
 	p rids.Pattern,
-	repository interface{},
+	repository service.Repository,
 	payload interface{},
 	token string,
 	requestOk func(interface{}),

@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/pprof"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi"
@@ -17,7 +18,7 @@ import (
 	"github.com/spike-events/spike-broker/v2/pkg/broker"
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
 	"github.com/spike-events/spike-broker/v2/pkg/service"
-	spike_utils "github.com/spike-events/spike-broker/v2/pkg/spike-utils"
+	spikeutils "github.com/spike-events/spike-broker/v2/pkg/spike-utils"
 	"github.com/spike-events/spike-broker/v2/pkg/spike/socket"
 	"github.com/vincent-petithory/dataurl"
 )
@@ -37,6 +38,11 @@ type HttpOptions struct {
 
 	// WSPrefix is the prefix path for http upgrade to web socket connection
 	WSPrefix string
+
+	// Address optionally specifies the TCP address for the server to listen on, in the form "host:port".
+	// If empty, ":http" (port 80) is used. The service names are defined in RFC 6335 and assigned by IANA.
+	// See net.Dial for details of the address format.
+	Address string
 
 	// Logger implements the logger interface for registering logs
 	Logger service.Logger
@@ -64,8 +70,9 @@ func NewHttpServer(ctx context.Context, opts HttpOptions) HttpServer {
 	router := chi.NewRouter()
 	return &httpServer{
 		ctx:    ctx,
-		server: &http.Server{Addr: ":3333", Handler: router},
+		server: &http.Server{Addr: opts.Address, Handler: router},
 		router: router,
+		opts:   opts,
 	}
 }
 
@@ -77,6 +84,7 @@ type httpServer struct {
 }
 
 func (h *httpServer) ListenAndServe() error {
+	c := make(chan bool)
 	go func() {
 		// A good base middleware stack
 		h.router.Use(middleware.RequestID)
@@ -125,8 +133,13 @@ func (h *httpServer) ListenAndServe() error {
 		h.router.Handle("/debug/pprof/allocs", pprof.Handler("allocs"))
 		h.router.Handle("/metrics", promhttp.Handler())
 
+		h.httpSetup(h.opts.WSPrefix)
+
 		go h.server.ListenAndServe()
+		time.Sleep(2 * time.Second)
+		c <- true
 	}()
+	<-c
 	return nil
 }
 
@@ -145,6 +158,9 @@ func (h *httpServer) httpSetup(wsPrefix string) {
 			h.httpHandler(p, w, r)
 		}
 
+		for param := range p.Params() {
+			method = strings.ReplaceAll(method, fmt.Sprintf("$%s", param), fmt.Sprintf("{%s}", param))
+		}
 		h.opts.Logger.Printf("%s -> %s", p.Method(), method)
 		switch p.Method() {
 		case http.MethodGet:
@@ -168,7 +184,8 @@ func (h *httpServer) httpSetup(wsPrefix string) {
 		Authorizer:    h.opts.Authorizer,
 		Logger:        h.opts.Logger,
 	}
-	h.router.HandleFunc(wsPrefix, socket.NewConnectionWS(wsOpts))
+	wsPrefix = strings.Replace(wsPrefix, "/", "", 1)
+	h.router.HandleFunc(fmt.Sprintf("/%s", wsPrefix), socket.NewConnectionWS(wsOpts))
 }
 
 func (h *httpServer) httpHandler(p rids.Pattern, w http.ResponseWriter, r *http.Request) {
@@ -182,17 +199,17 @@ func (h *httpServer) httpHandler(p rids.Pattern, w http.ResponseWriter, r *http.
 		return
 	}
 
-	token := r.Header.Get("token")
+	token, _ := spikeutils.GetBearer(r)
 	params := make(map[string]fmt.Stringer)
-	for _, param := range p.Params() {
-		value := chi.URLParam(r, param.String())
+	for param := range p.Params() {
+		value := chi.URLParam(r, param)
 		if value != "" {
-			params[param.String()] = spike_utils.Stringer(value)
+			params[param] = spikeutils.Stringer(value)
 		}
 	}
 
 	p = p.Clone()
-	call := broker.NewHTTPCall(p, token, data, params, r.Form.Encode())
+	call := broker.NewHTTPCall(p, token, string(data), params, r.Form.Encode())
 	result, rErr := h.opts.Broker.RequestRaw(p.EndpointName(), call.ToJSON())
 	if rErr != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -201,7 +218,7 @@ func (h *httpServer) httpHandler(p rids.Pattern, w http.ResponseWriter, r *http.
 	}
 
 	parsedResponse := broker.NewErrorFromJSON(result)
-	if parsedResponse != nil && parsedResponse.Message() == "" {
+	if parsedResponse != nil && parsedResponse.Message() != "" {
 		w.WriteHeader(parsedResponse.Code())
 		w.Write(parsedResponse.ToJSON())
 		return
@@ -225,6 +242,11 @@ func (h *httpServer) httpHandler(p rids.Pattern, w http.ResponseWriter, r *http.
 		}
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Write(data)
+	if data, err = json.Marshal(parsedResponse.Data()); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+	} else {
+		w.WriteHeader(http.StatusOK)
+		w.Write(data)
+	}
 }

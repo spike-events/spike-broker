@@ -45,9 +45,9 @@ type APIService interface {
 	Stop() error
 }
 
-// New returns an APIService implementation that starts an HTTP and WebSocket routing, authentication and authorization
+// NewAPIService returns an APIService implementation that starts an HTTP and WebSocket routing, authentication and authorization
 // mechanism using
-func New() APIService {
+func NewAPIService() APIService {
 	return &serviceImpl{}
 }
 
