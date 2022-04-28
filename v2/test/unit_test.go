@@ -81,19 +81,11 @@ func (u *UnitTest) SetupSuite() {
 
 func (u *UnitTest) TestFailReplyNoToken() {
 	t := spike.APITestRequestOrPublish{
-		Pattern:    ServiceTestRid().TestReply(u.id),
-		Repository: nil,
-		Payload:    nil,
-		Token:      "",
-		RequestOk:  func(value ...interface{}) {},
-		AccessOk:   func(value ...interface{}) {},
-		RequestErr: func(value interface{}) {},
-		AccessErr:  func(value interface{}) {},
-		Mocks: testProvider.Mocks{
-			Requests:     map[string]testProvider.RequestMock{},
-			RequestsRaw:  map[string]testProvider.RequestRawMock{},
-			Publishes:    map[string]testProvider.RequestMock{},
-			PublishesRaw: map[string]testProvider.RequestRawMock{},
+		Pattern: ServiceTestRid().TestReply(u.id),
+		AccessErr: func(value interface{}) {
+			err, valid := value.(broker.Error)
+			u.Require().True(valid, "invalid error")
+			u.Require().ErrorIs(err, broker.ErrorAccessDenied)
 		},
 	}
 	err := u.svc.TestRequestOrPublish(t)
@@ -103,29 +95,31 @@ func (u *UnitTest) TestFailReplyNoToken() {
 func (u *UnitTest) TestFromMock() {
 	testReplyMock := func(p rids.Pattern, payload interface{}, res interface{}, token ...string) broker.Error {
 		id, converted := payload.(uuid.UUID)
-		if !converted {
-			return broker.ErrorInvalidParams
-		}
+		u.Require().True(converted)
 		*res.(*uuid.UUID) = id
 		return nil
 	}
 
 	t := spike.APITestRequestOrPublish{
-		Pattern:    ServiceTestRid().FromMock(),
-		Repository: nil,
-		Payload:    nil,
-		Token:      "",
-		RequestOk:  func(value ...interface{}) {},
-		AccessOk:   func(value ...interface{}) {},
-		RequestErr: func(value interface{}) {},
-		AccessErr:  func(value interface{}) {},
+		Pattern: ServiceTestRid().FromMock(),
+		RequestOk: func(value ...interface{}) {
+			u.Require().NotEmpty(value, "no value provider")
+			_, valid := value[0].(*uuid.UUID)
+			u.Require().True(valid, "value is not uuid")
+		},
+		AccessOk: func(value ...interface{}) {
+			u.Require().Empty(value)
+		},
+		RequestErr: func(value interface{}) {
+			u.Require().Nil(value)
+		},
+		AccessErr: func(value interface{}) {
+			u.Require().Nil(value)
+		},
 		Mocks: testProvider.Mocks{
 			Requests: map[string]testProvider.RequestMock{
 				ServiceTestRid().TestReply().EndpointName(): testReplyMock,
 			},
-			RequestsRaw:  map[string]testProvider.RequestRawMock{},
-			Publishes:    map[string]testProvider.RequestMock{},
-			PublishesRaw: map[string]testProvider.RequestRawMock{},
 		},
 	}
 	err := u.svc.TestRequestOrPublish(t)

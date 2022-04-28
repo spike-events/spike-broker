@@ -106,6 +106,7 @@ func (c *callRequest) File(f *dataurl.DataURL) {
 
 func (c *callRequest) OK(result ...interface{}) {
 	c.result = nil
+	c.okF(result...)
 }
 
 func (c *callRequest) InternalError(err error) {
@@ -143,6 +144,12 @@ func (c *callRequest) SetEndpoint(p rids.Pattern) {
 }
 
 func NewCall(p rids.Pattern, payload interface{}, token string, okF func(...interface{}), errF func(interface{})) broker.Call {
+	if okF == nil {
+		okF = func(...interface{}) {}
+	}
+	if errF == nil {
+		errF = func(interface{}) {}
+	}
 	return &callRequest{
 		p:       p,
 		token:   token,
