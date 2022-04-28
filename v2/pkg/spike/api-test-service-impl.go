@@ -7,7 +7,6 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/spike-events/spike-broker/v2/pkg/broker"
 	"github.com/spike-events/spike-broker/v2/pkg/broker/providers/testProvider"
-	"github.com/spike-events/spike-broker/v2/pkg/rids"
 	"github.com/spike-events/spike-broker/v2/pkg/service"
 )
 
@@ -17,7 +16,7 @@ type testServiceImpl struct {
 	opts              *Options
 	testProvider      testProvider.Provider
 	startRepository   service.Repository
-	startRequestMocks testProvider.RequestMock
+	startRequestMocks testProvider.Mocks
 	ctx               context.Context
 	cancel            context.CancelFunc
 	id                uuid.UUID
@@ -39,8 +38,9 @@ func (s *testServiceImpl) StartService() error {
 		return fmt.Errorf("API not initialized")
 	}
 
-	tp := testProvider.NewTestProvider(s.ctx, s.cancel)
+	tp := testProvider.NewTestProvider(s.ctx)
 	s.opts.Broker = tp
+	s.testProvider = tp
 	s.opts.Repository = s.startRepository
 	config := service.Config{
 		Broker:     tp,
@@ -51,8 +51,6 @@ func (s *testServiceImpl) StartService() error {
 	if err := s.opts.Service.SetConfig(config); err != nil {
 		return err
 	}
-
-	// TODO: Test Migrator
 
 	// Initialize Handlers
 	handlers := s.opts.Service.Handlers()
@@ -95,23 +93,13 @@ func (s *testServiceImpl) Stop() error {
 	return nil
 }
 
-func (s *testServiceImpl) TestRequestOrPublish(
-	p rids.Pattern,
-	repository service.Repository,
-	payload interface{},
-	token string,
-	requestOk func(interface{}),
-	accessOk func(interface{}),
-	requestErr func(interface{}),
-	accessErr func(interface{}),
-	mocks testProvider.Mocks,
-) broker.Error {
+func (s *testServiceImpl) TestRequestOrPublish(params APITestRequestOrPublish) broker.Error {
 	if s.opts == nil {
 		return broker.InternalError(fmt.Errorf("API not initialized"))
 	}
 
 	err := s.opts.Service.SetConfig(service.Config{
-		Repository: repository,
+		Repository: params.Repository,
 		Broker:     s.opts.Broker,
 		Logger:     s.opts.Logger,
 	})
@@ -119,11 +107,11 @@ func (s *testServiceImpl) TestRequestOrPublish(
 		return broker.InternalError(err)
 	}
 
-	s.testProvider.SetMocks(mocks)
+	s.testProvider.SetMocks(params.Mocks)
 
-	call := testProvider.NewCall(p, payload, token, requestOk, requestErr)
-	access := testProvider.NewAccess(p, payload, token, accessOk, accessErr)
-	handleRequest(p, call, access, *s.opts)
+	call := testProvider.NewCall(params.Pattern, params.Payload, params.Token, params.RequestOk, params.RequestErr)
+	access := testProvider.NewAccess(params.Pattern, params.Payload, params.Token, params.AccessOk, params.AccessErr)
+	handleRequest(params.Pattern, call, access, *s.opts)
 	if access.GetError() != nil {
 		return access.GetError()
 	}
