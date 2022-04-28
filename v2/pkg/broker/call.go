@@ -30,7 +30,6 @@ type Call interface {
 	ParseQuery(q interface{}) error
 
 	ToJSON() json.RawMessage
-	FromJSON(data json.RawMessage, provider Provider, reply string) error
 	Timeout(timeout time.Duration)
 
 	File(f *dataurl.DataURL)
