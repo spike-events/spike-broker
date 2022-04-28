@@ -18,3 +18,5 @@ __debug_bin
 .vscode
 .idea
 /test/gorm.db
+/gorm.db
+/gorm.db-journal

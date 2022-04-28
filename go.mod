@@ -13,7 +13,7 @@ require (
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/nats-io/nats-server/v2 v2.1.9
 	github.com/nats-io/nats.go v1.10.0
-	github.com/prometheus/client_golang v1.12.1 // indirect
+	github.com/prometheus/client_golang v1.12.1
 	github.com/rs/cors v1.7.0
 	github.com/spike-events/spike-events v0.2.0
 	github.com/stretchr/testify v1.7.0 // indirect
