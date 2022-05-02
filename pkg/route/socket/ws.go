@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"runtime/debug"
 	"syscall"
 )
 
@@ -47,7 +46,7 @@ func wsHandler(ctx context.Context, c *WSConnection) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("ws: stack error, %v", r)
-			log.Printf(string(debug.Stack()))
+			//log.Printf(string(debug.Stack()))
 			log.Printf("ws: context done, disconnecting %s", c.ID)
 			err := c.WSConnection().Close()
 			if err != nil {
