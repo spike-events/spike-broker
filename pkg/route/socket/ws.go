@@ -67,6 +67,9 @@ func wsHandler(ctx context.Context, c *WSConnection) {
 			err := c.WSConnection().WriteJSON(errorMsg)
 			if err != nil {
 				log.Printf("ws: failed to send error message on connection %s with data %v: %v", c.ID, errorMsg, err)
+				c.CancelContext()
+				c.Broker().Publish(rids.Route().EventSocketDisconnected(c.ID), nil, c.GetSessionToken())
+				return
 			}
 			errorMsg = nil
 		}
