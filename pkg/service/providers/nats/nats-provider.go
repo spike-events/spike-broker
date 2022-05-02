@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -171,8 +172,9 @@ func (s *NatsConn) subscribe(pattern *rids.Pattern,
 				} else {
 					resErr.Message = err.Error()
 				}
-				log.Printf("nats: panic on handler: %v", r)
 				req.ErrorRequest(&request.ErrorInternalServerError)
+				log.Printf("nats: panic on handler: %v", r)
+				log.Printf(string(debug.Stack()))
 			}
 		}()
 
