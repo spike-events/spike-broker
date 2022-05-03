@@ -191,6 +191,16 @@ func (c *call) ParseData(v interface{}) error {
 
 // ToJSON CallRequest
 func (c *call) ToJSON() json.RawMessage {
+	//if c.EndpointPattern.Version() == 1 {
+	//
+	//	cV1 := &callV1{
+	//		Params:   nil,
+	//		Data:     nil,
+	//		Token:    "",
+	//		Query:    "",
+	//		Endpoint: "",
+	//	}
+	//}
 	data, err := json.Marshal(c)
 	if err != nil {
 		panic(err)

@@ -21,6 +21,7 @@ type Pattern interface {
 	QueryParams() interface{}
 	SetParams(params map[string]fmt.Stringer)
 	Clone() Pattern
+	Version() int
 }
 
 func newPattern(m *method) Pattern {
@@ -42,6 +43,10 @@ func UnmarshalPattern(data json.RawMessage) (Pattern, error) {
 type pattern struct {
 	MethodValue      *method     `json:"methodValue"`
 	QueryParamsValue interface{} `json:"queryParamsValue"`
+}
+
+func (p *pattern) Version() int {
+	return p.MethodValue.Version
 }
 
 func (p *pattern) Clone() Pattern {

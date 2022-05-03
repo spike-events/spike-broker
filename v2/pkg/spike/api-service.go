@@ -3,7 +3,6 @@ package spike
 import (
 	"time"
 
-	"github.com/spike-events/spike-broker/v2/pkg/broker"
 	"github.com/spike-events/spike-broker/v2/pkg/service"
 )
 
@@ -11,15 +10,6 @@ import (
 type Options struct {
 	// Service holds the service.APIService implementantion that will be served
 	Service service.Service
-
-	// Broker holds the broker.Provider that will be used for communication
-	Broker broker.Provider
-
-	// Repository holds the service.Repository implementation that will be used by the service.APIService
-	Repository service.Repository
-
-	// Logger holds the service.Logger that will handle the logging calls
-	Logger service.Logger
 
 	// Authenticator implements the authenticator interface that will be used by the service to check token validity
 	Authenticator service.Authenticator
@@ -34,8 +24,8 @@ type Options struct {
 // APIService interface for starting and stopping the service.Service instance. It is defined as an interface to allow the
 // creation of a TestBroker implementation which in turns allow the service.Service to be unit tested
 type APIService interface {
-	// Initialize the APIService with all options
-	Initialize(options Options) error
+	// RegisterService registers the Service with Spike API
+	RegisterService(options Options) error
 
 	// StartService starts the service specified on provided Options
 	StartService() error

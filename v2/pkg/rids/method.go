@@ -28,6 +28,7 @@ type method struct {
 	SpecificEndpoint string                  `json:"specificEndpoint"`
 	Params           map[string]fmt.Stringer `json:"params"`
 	IsPublic         bool                    `json:"isPublic"`
+	Version          int                     `json:"version"`
 }
 
 func (m *method) UnmarshalJSON(data []byte) error {
@@ -41,6 +42,7 @@ func (m *method) UnmarshalJSON(data []byte) error {
 		SpecificEndpoint string            `json:"specificEndpoint"`
 		Params           map[string]string `json:"params"`
 		IsPublic         bool              `json:"isPublic"`
+		Version          int               `json:"version"`
 	}
 	var methodInner methodInnerType
 	if err := json.Unmarshal(data, &methodInner); err != nil {
@@ -54,6 +56,7 @@ func (m *method) UnmarshalJSON(data []byte) error {
 	m.GenericEndpoint = methodInner.GenericEndpoint
 	m.SpecificEndpoint = methodInner.SpecificEndpoint
 	m.IsPublic = methodInner.IsPublic
+	m.Version = methodInner.Version
 	m.Params = make(map[string]fmt.Stringer)
 	for name, value := range methodInner.Params {
 		m.Params[name] = spikeutils.Stringer(value)
@@ -61,7 +64,7 @@ func (m *method) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func newMethod(serviceName, serviceLabel, label, httpPrefix, endpoint string, params ...fmt.Stringer) *method {
+func newMethod(serviceName, serviceLabel, label, httpPrefix, endpoint string, version int, params ...fmt.Stringer) *method {
 	genericEndpoint := endpoint
 	epParts := strings.Split(endpoint, ".")
 	var paramsMap = make(map[string]fmt.Stringer)
@@ -94,6 +97,7 @@ func newMethod(serviceName, serviceLabel, label, httpPrefix, endpoint string, pa
 		GenericEndpoint:  genericEndpoint,
 		SpecificEndpoint: endpoint,
 		Params:           paramsMap,
+		Version:          version,
 	}
 }
 

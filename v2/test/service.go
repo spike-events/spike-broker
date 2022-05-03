@@ -10,13 +10,15 @@ import (
 )
 
 type ServiceTest struct {
-	key  uuid.UUID
-	ctx  context.Context
-	conf service.Config
+	key    uuid.UUID
+	ctx    context.Context
+	repo   interface{}
+	broker broker.Provider
+	logger service.Logger
 }
 
-func (s *ServiceTest) SetConfig(config service.Config) error {
-	s.conf = config
+func (s *ServiceTest) SetRepository(repo interface{}) error {
+	s.repo = repo
 	return nil
 }
 
@@ -58,15 +60,11 @@ func (s *ServiceTest) Rid() rids.Resource {
 }
 
 func (s *ServiceTest) Broker() broker.Provider {
-	return s.conf.Broker
-}
-
-func (s *ServiceTest) Repository() service.Repository {
-	return s.conf.Repository
+	return s.broker
 }
 
 func (s *ServiceTest) Logger() service.Logger {
-	return s.conf.Logger
+	return s.logger
 }
 
 func (s *ServiceTest) validateReply(a broker.Access) {
@@ -95,9 +93,12 @@ func (s *ServiceTest) fromMock(c broker.Call) {
 		return
 	}
 
-	c.OK(&id)
+	c.OK(&replyID)
 }
 
-func NewServiceTest() service.Service {
-	return &ServiceTest{}
+func NewServiceTest(broker broker.Provider, logger service.Logger) service.Service {
+	return &ServiceTest{
+		broker: broker,
+		logger: logger,
+	}
 }

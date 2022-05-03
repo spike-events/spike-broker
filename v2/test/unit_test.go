@@ -36,9 +36,6 @@ func (u *UnitTest) SetupSuite() {
 	// Use default logger to stderr
 	logger := log.New(os.Stderr, "test", log.LstdFlags)
 
-	// Create an empty repository
-	var repo interface{}
-
 	// Test Authenticator (validates token)
 	authenticator := spike.NewTestAuthenticator(func(s string) (string, bool) {
 		return s, true
@@ -49,15 +46,13 @@ func (u *UnitTest) SetupSuite() {
 		return true
 	})
 
+	// Test Broker
+	tp := testProvider.NewTestProvider(u.ctx)
+
 	// Initialize Spike providing Service
-	spkService := spike.NewAPITestService(
-		repo,
-		testProvider.Mocks{},
-	)
-	err = spkService.Initialize(spike.Options{
-		Service:       NewServiceTest(),
-		Repository:    repo,
-		Logger:        logger,
+	spkService := spike.NewAPITestService(testProvider.Mocks{})
+	err = spkService.RegisterService(spike.Options{
+		Service:       NewServiceTest(tp, logger),
 		Authenticator: authenticator,
 		Authorizer:    authorizer,
 		Timeout:       2 * time.Minute,
@@ -81,7 +76,7 @@ func (u *UnitTest) TestFailReplyNoToken() {
 		AccessErr: func(value interface{}) {
 			err, valid := value.(broker.Error)
 			u.Require().True(valid, "invalid error")
-			u.Require().ErrorIs(err, broker.ErrorAccessDenied)
+			u.Require().ErrorIs(broker.ErrorAccessDenied, err)
 		},
 	}
 	err := u.svc.TestRequestOrPublish(t)
