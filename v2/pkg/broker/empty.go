@@ -62,7 +62,7 @@ func (e *empty) FromJSON(data json.RawMessage, provider Provider, reply string) 
 
 func (e *empty) InternalError(err error) {}
 
-func (e *empty) Error(err Error, msg ...string) {}
+func (e *empty) Error(err error, msg ...string) {}
 
 func (e *empty) ParseToken(t interface{}) {}
 
