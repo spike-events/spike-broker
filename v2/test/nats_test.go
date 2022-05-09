@@ -35,9 +35,6 @@ func (s *NatsTest) SetupSuite() {
 	// Use default logger to stderr
 	logger := log.New(os.Stderr, "test", log.LstdFlags)
 
-	// Create an empty repository
-	var repo interface{}
-
 	// Test Authenticator (validates token)
 	authenticator := NewAuthenticator()
 
@@ -55,11 +52,8 @@ func (s *NatsTest) SetupSuite() {
 
 	// Initialize Spike providing Service
 	spkService := spike.NewAPIService()
-	err = spkService.Initialize(spike.Options{
-		Service:       NewServiceTest(),
-		Broker:        broker,
-		Repository:    repo,
-		Logger:        logger,
+	err = spkService.RegisterService(spike.Options{
+		Service:       NewServiceTest(broker, logger),
 		Authenticator: authenticator,
 		Authorizer:    authorizer,
 		Timeout:       2 * time.Minute,
@@ -97,21 +91,21 @@ func (s *NatsTest) TestReplyFailNoToken() {
 	var id uuid.UUID
 	err := Request(ServiceTestRid().TestReply(s.id), s, &id)
 	s.Require().NotNilf(err, "should return error")
-	s.Require().Equal(err.Code(), http.StatusUnauthorized, "incorrect error")
+	s.Require().Equal(http.StatusUnauthorized, err.Code(), "incorrect error")
 }
 
 func (s *NatsTest) TestReplyFailInvalidToken() {
 	var id uuid.UUID
 	err := Request(ServiceTestRid().TestReply(s.id), s, &id, "invalid-token")
 	s.Require().NotNilf(err, "should return error")
-	s.Require().Equal(err.Code(), http.StatusUnauthorized, "incorrect error")
+	s.Require().Equal(http.StatusUnauthorized, err.Code(), "incorrect error")
 }
 
 func (s *NatsTest) TestReplyWithToken() {
 	var id uuid.UUID
 	err := Request(ServiceTestRid().TestReply(s.id), s, &id, "token-string")
 	s.Require().ErrorIs(err, nil, "error response")
-	s.Require().Equal(id, s.id, "invalid response")
+	s.Require().Equal(s.id, id, "invalid response")
 }
 
 func TestNats(t *testing.T) {

@@ -8,16 +8,10 @@ import (
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
 )
 
-type Config struct {
-	Repository Repository
-	Broker     broker.Provider
-	Logger     Logger
-}
-
 // Service Interface allows implementing Service code that will be initialized by Spike
 type Service interface {
-	// SetConfig allows the service to update internal configuration structure. It must be idempotent.
-	SetConfig(config Config) error
+	// SetRepository allows Spike to inject another Repository. It must be idempotent.
+	SetRepository(repository interface{}) error
 
 	// Start will be called after all migration, config and handlers setup has been done, expecting it to return without
 	// blocking
@@ -41,9 +35,6 @@ type Service interface {
 
 	// Broker returns the Broker Provider used to communicate with other Service
 	Broker() broker.Provider
-
-	// Repository returns a Repository interface that handles database calls
-	Repository() Repository
 
 	// Logger returns the logger to be used by the Service
 	Logger() Logger

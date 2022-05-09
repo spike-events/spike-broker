@@ -4,12 +4,11 @@ import (
 	"github.com/spike-events/spike-broker/v2/pkg/broker"
 	"github.com/spike-events/spike-broker/v2/pkg/broker/providers/testProvider"
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
-	"github.com/spike-events/spike-broker/v2/pkg/service"
 )
 
 type APITestRequestOrPublish struct {
 	Pattern    rids.Pattern
-	Repository service.Repository
+	Repository interface{}
 	Payload    interface{}
 	Token      string
 	RequestOk  func(...interface{})
@@ -25,10 +24,9 @@ type APITestService interface {
 }
 
 // NewAPITestService returns an APIService implementation that runs unit tests based on specified parameters
-func NewAPITestService(startRepository service.Repository, startRequestMocks testProvider.Mocks) APITestService {
+func NewAPITestService(startRequestMocks testProvider.Mocks) APITestService {
 	if serviceTestImplInstance == nil {
 		serviceTestImplInstance = &testServiceImpl{
-			startRepository:   startRepository,
 			startRequestMocks: startRequestMocks,
 		}
 	}

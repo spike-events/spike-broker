@@ -114,9 +114,13 @@ func (c *callRequest) InternalError(err error) {
 	c.errF(c.result)
 }
 
-func (c *callRequest) Error(err broker.Error, msg ...string) {
-	c.result = err
-	c.errF(err)
+func (c *callRequest) Error(err error, msg ...string) {
+	if brokerErr, ok := err.(broker.Error); ok {
+		c.result = brokerErr
+		c.errF(c.result)
+		return
+	}
+	c.InternalError(err)
 }
 
 func (c *callRequest) NotFound() {

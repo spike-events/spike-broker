@@ -9,11 +9,6 @@ import (
 
 type ProviderType string
 
-const (
-	NatsProvider  ProviderType = "nats"
-	SpikeProvider ProviderType = "spike"
-)
-
 // Subscription has the Resource, the Call handler and the optional Access validators
 type Subscription struct {
 	Resource   rids.Pattern

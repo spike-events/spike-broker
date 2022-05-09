@@ -36,7 +36,7 @@ type Call interface {
 	OK(result ...interface{})
 
 	GetError() Error
-	Error(err Error, msg ...string)
+	Error(err error, msg ...string)
 	InternalError(err error)
 	NotFound()
 
@@ -191,6 +191,16 @@ func (c *call) ParseData(v interface{}) error {
 
 // ToJSON CallRequest
 func (c *call) ToJSON() json.RawMessage {
+	//if c.EndpointPattern.Version() == 1 {
+	//
+	//	cV1 := &callV1{
+	//		Params:   nil,
+	//		Data:     nil,
+	//		Token:    "",
+	//		Query:    "",
+	//		Endpoint: "",
+	//	}
+	//}
 	data, err := json.Marshal(c)
 	if err != nil {
 		panic(err)
@@ -310,11 +320,15 @@ func (c *call) InternalError(err error) {
 }
 
 // Error result
-func (c *call) Error(err Error, msg ...string) {
+func (c *call) Error(err error, msg ...string) {
 	if err == nil {
 		panic("error request cant be nil")
 	}
-	c.error(err)
+	if brokerErr, ok := err.(Error); ok {
+		c.error(brokerErr)
+	} else {
+		c.InternalError(err)
+	}
 }
 
 // Timeout informs the max timeout for this request

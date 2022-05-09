@@ -16,9 +16,11 @@ type serviceImpl struct {
 	ctx      context.Context
 	cancel   context.CancelFunc
 	id       uuid.UUID
+	broker   broker.Provider
+	logger   service.Logger
 }
 
-func (s *serviceImpl) Initialize(options Options) error {
+func (s *serviceImpl) RegisterService(options Options) error {
 	s.opts = &options
 	s.ctx, s.cancel = context.WithTimeout(context.Background(), options.Timeout)
 	id, err := uuid.NewV4()
@@ -26,6 +28,8 @@ func (s *serviceImpl) Initialize(options Options) error {
 		return err
 	}
 	s.id = id
+	s.broker = options.Service.Broker()
+	s.logger = options.Service.Logger()
 	return nil
 }
 
@@ -34,10 +38,10 @@ func (s *serviceImpl) StartService() error {
 		return fmt.Errorf("API not initialized")
 	}
 
-	s.opts.Broker.SetHandler(func(p rids.Pattern, payload []byte, replyEndpoint string) {
+	s.broker.SetHandler(func(p rids.Pattern, payload []byte, replyEndpoint string) {
 		call, err := broker.NewCallFromJSON(payload)
 		if err == nil {
-			call.SetProvider(s.opts.Broker)
+			call.SetProvider(s.broker)
 			call.SetReply(replyEndpoint)
 			access := broker.NewAccess(call)
 			handleRequest(p, call, access, *s.opts)
@@ -52,38 +56,29 @@ func (s *serviceImpl) StartService() error {
 		return fmt.Errorf("service must implement a valid Handlers() function")
 	}
 
-	if s.opts.Broker == nil {
+	if s.broker == nil {
 		return fmt.Errorf("no broker specified on options")
 	}
 
-	if s.opts.Logger == nil {
+	if s.logger == nil {
 		return fmt.Errorf("no logger specified on options")
 	}
 
-	err := s.opts.Service.SetConfig(service.Config{
-		Repository: s.opts.Repository,
-		Broker:     s.opts.Broker,
-		Logger:     s.opts.Logger,
-	})
-	if err != nil {
-		return err
-	}
-
 	for _, sub := range s.opts.Service.Handlers() {
-		if _, err = s.opts.Broker.Subscribe(sub); err != nil {
+		if _, err := s.broker.Subscribe(sub); err != nil {
 			return err
 		}
 	}
 
 	if s.opts.Service.Monitors() != nil {
 		for group, sub := range s.opts.Service.Monitors() {
-			if _, err = s.opts.Broker.Monitor(group, sub); err != nil {
+			if _, err := s.broker.Monitor(group, sub); err != nil {
 				return err
 			}
 		}
 	}
 
-	if err = s.opts.Service.Start(s.id, s.ctx); err != nil {
+	if err := s.opts.Service.Start(s.id, s.ctx); err != nil {
 		return err
 	}
 	return nil

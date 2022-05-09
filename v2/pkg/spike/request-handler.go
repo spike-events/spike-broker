@@ -18,7 +18,7 @@ func handleRequest(p rids.Pattern, msg broker.Call, access broker.Access, opts O
 			} else {
 				rErr = broker.InternalError(err)
 			}
-			opts.Logger.Printf("nats: panic on handler: %v", r)
+			opts.Service.Logger().Printf("nats: panic on handler: %v", r)
 			msg.Error(rErr)
 		}
 	}()

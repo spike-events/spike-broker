@@ -18,18 +18,32 @@ type Base struct {
 	label      string
 	httpPrefix string
 	wsPrefix   string
+	version    int
 }
 
-func NewRid(name, label, httpPrefix string) Base {
+func NewRid(name, label, httpPrefix string, version ...int) Base {
+	var ver int
+	if len(version) > 0 {
+		switch version[0] {
+		case 1, 2:
+			ver = version[0]
+		default:
+			panic("invalid API version")
+		}
+	} else {
+		ver = 2
+	}
+
 	return Base{
 		name:       name,
 		label:      label,
 		httpPrefix: httpPrefix,
+		version:    ver,
 	}
 }
 
 func (b *Base) NewMethod(label, endpoint string, params ...fmt.Stringer) Method {
-	return newMethod(b.name, b.label, label, b.httpPrefix, endpoint, params...)
+	return newMethod(b.name, b.label, label, b.httpPrefix, endpoint, b.version, params...)
 }
 
 func (b *Base) ByID(id ...fmt.Stringer) Pattern {
