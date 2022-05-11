@@ -37,8 +37,6 @@ type Call interface {
 
 	GetError() Error
 	Error(err error, msg ...string)
-	InternalError(err error)
-	NotFound()
 
 	SetReply(reply string)
 	SetToken(token string)

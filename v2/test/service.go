@@ -78,7 +78,7 @@ func (s *ServiceTest) validateReply(a broker.Access) {
 func (s *ServiceTest) reply(c broker.Call) {
 	id, err := uuid.FromString(c.PathParam("ID"))
 	if err != nil {
-		c.InternalError(err)
+		c.Error(err)
 		return
 	}
 	c.OK(&id)

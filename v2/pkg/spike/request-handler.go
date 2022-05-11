@@ -34,7 +34,7 @@ func handleRequest(p rids.Pattern, msg broker.Call, access broker.Access, opts O
 	}
 
 	if !found {
-		msg.NotFound()
+		msg.Error(broker.ErrorNotFound)
 		return
 	}
 

@@ -62,6 +62,10 @@ var (
 )
 
 func InternalError(err error) Error {
+	if err == nil {
+		return ErrorInternalServerError
+	}
+
 	return &errorRequest{
 		MessageStr: err.Error(),
 		CodeInt:    http.StatusInternalServerError,
