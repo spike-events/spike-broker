@@ -248,7 +248,7 @@ func (s *Provider) Get(p rids.Pattern, rs interface{}, token ...string) broker.E
 	return s.Request(p, nil, rs, token...)
 }
 
-// Request endpoint nats
+// Request endpoint nats FIXME: This is a general handler
 func (s *Provider) Request(p rids.Pattern, payload interface{}, rs interface{}, token ...string) broker.Error {
 	call := broker.NewCall(p, payload)
 	if len(token) > 0 && token[0] != "" && len(token[0]) > 0 {
@@ -355,7 +355,7 @@ func (s *Provider) processResponse(subject, inbox string, c chan *nats.Msg, t ti
 			respStr := string(msg.Data)
 			timeout, resErr := s.getTimeout(respStr)
 			if resErr != nil {
-				s.printDebug("nats: invalid timeout response on endpoint %s inbox %s: %s", subject, inbox, resErr.Message)
+				s.printDebug("nats: invalid timeout response on endpoint %s inbox %s: %s", subject, inbox, resErr.Error())
 				return nil, resErr
 			}
 

@@ -193,7 +193,7 @@ func (c *call) ToJSON() json.RawMessage {
 	//
 	//	cV1 := &callV1{
 	//		Params:   nil,
-	//		Data:     nil,
+	//		DataIface:     nil,
 	//		Token:    "",
 	//		Query:    "",
 	//		Endpoint: "",
@@ -228,13 +228,13 @@ func (c *call) File(f *dataurl.DataURL) {
 		return
 	}
 
-	var success Success
-	success.Code = http.StatusOK
+	var success Message
+	success.CodeInt = http.StatusOK
 	payload, err := json.Marshal(f)
 	if err != nil {
 		panic(err)
 	}
-	success.Data = payload
+	success.DataIface = payload
 	data, err := json.Marshal(&success)
 	if err != nil {
 		panic(err)
@@ -248,8 +248,8 @@ func (c *call) OK(result ...interface{}) {
 		return
 	}
 
-	var success Success
-	success.Code = http.StatusOK
+	var success Message
+	success.CodeInt = http.StatusOK
 
 	if len(result) == 0 {
 		data, err := json.Marshal(&success)
@@ -266,7 +266,7 @@ func (c *call) OK(result ...interface{}) {
 
 	switch result[0].(type) {
 	case string:
-		success.Data = []byte(result[0].(string))
+		success.DataIface = []byte(result[0].(string))
 		data, err := json.Marshal(&success)
 		if err != nil {
 			panic(err)
@@ -278,7 +278,7 @@ func (c *call) OK(result ...interface{}) {
 		}
 		return
 	case []byte:
-		success.Data = result[0].([]byte)
+		success.DataIface = result[0].([]byte)
 		data, err := json.Marshal(&success)
 		if err != nil {
 			panic(err)
@@ -293,11 +293,7 @@ func (c *call) OK(result ...interface{}) {
 
 	// Make sure we always marshal pointer structures
 	result[0] = spike_utils.PointerFromInterface(result[0])
-	payload, err := json.Marshal(result[0])
-	if err != nil {
-		panic(err)
-	}
-	success.Data = payload
+	success.DataIface = result[0]
 	data, err := json.Marshal(&success)
 	if err != nil {
 		panic(err)
@@ -322,6 +318,7 @@ func (c *call) Error(err error, msg ...string) {
 	if err == nil {
 		panic("error request cant be nil")
 	}
+	err = Trace(err, 1)
 	if brokerErr, ok := err.(Error); ok {
 		c.error(brokerErr)
 	} else {

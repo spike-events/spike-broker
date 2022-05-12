@@ -9,31 +9,25 @@ import (
 type Error interface {
 	Error() string
 	Code() int
-	Message() string
 	Data() interface{}
 	ToJSON() []byte
 }
 
-type errorRequest struct {
-	MessageStr string      `json:"message,omitempty"`
-	CodeInt    int         `json:"code,omitempty"`
-	DataIface  interface{} `json:"data,omitempty"`
+type errorMessage struct {
+	Message
+	MessageStr string `json:"message,omitempty"`
 }
 
-func (e *errorRequest) Data() interface{} {
+func (e *errorMessage) Data() interface{} {
 	return e.DataIface
 }
 
-func (e *errorRequest) Error() string {
+func (e *errorMessage) Error() string {
 	return e.MessageStr
 }
 
-func (e *errorRequest) Code() int {
+func (e *errorMessage) Code() int {
 	return e.CodeInt
-}
-
-func (e *errorRequest) Message() string {
-	return e.MessageStr
 }
 
 type RedirectRequest struct {
@@ -41,7 +35,7 @@ type RedirectRequest struct {
 }
 
 // ToJSON error request
-func (e errorRequest) ToJSON() []byte {
+func (e errorMessage) ToJSON() []byte {
 	data, err := json.Marshal(e)
 	if err != nil {
 		panic(err)
@@ -51,14 +45,14 @@ func (e errorRequest) ToJSON() []byte {
 
 // information already exists
 var (
-	ErrorInformationAlreadyExists Error = &errorRequest{"information already exists", http.StatusAlreadyReported, nil}
-	ErrorNotFound                 Error = &errorRequest{"not found", http.StatusNotFound, nil}
-	ErrorStatusUnauthorized       Error = &errorRequest{"not authorized", http.StatusUnauthorized, nil}
-	ErrorStatusForbidden          Error = &errorRequest{"forbidden", http.StatusForbidden, nil}
-	ErrorInvalidParams            Error = &errorRequest{"invalid params", http.StatusBadRequest, nil}
-	ErrorInternalServerError      Error = &errorRequest{"internal error", http.StatusInternalServerError, nil}
-	ErrorAccessDenied             Error = &errorRequest{"access denied", http.StatusForbidden, nil}
-	ErrorTimeout                  Error = &errorRequest{"timeout", http.StatusRequestTimeout, nil}
+	ErrorInformationAlreadyExists Error = &errorMessage{Message{http.StatusAlreadyReported, nil}, "information already exists"}
+	ErrorNotFound                 Error = &errorMessage{Message{http.StatusNotFound, nil}, "not found"}
+	ErrorStatusUnauthorized       Error = &errorMessage{Message{http.StatusUnauthorized, nil}, "not authorized"}
+	ErrorStatusForbidden          Error = &errorMessage{Message{http.StatusForbidden, nil}, "forbidden"}
+	ErrorInvalidParams            Error = &errorMessage{Message{http.StatusBadRequest, nil}, "invalid params"}
+	ErrorInternalServerError      Error = &errorMessage{Message{http.StatusInternalServerError, nil}, "internal error"}
+	ErrorAccessDenied             Error = &errorMessage{Message{http.StatusForbidden, nil}, "access denied"}
+	ErrorTimeout                  Error = &errorMessage{Message{http.StatusRequestTimeout, nil}, "timeout"}
 )
 
 func InternalError(err error) Error {
@@ -66,29 +60,33 @@ func InternalError(err error) Error {
 		return ErrorInternalServerError
 	}
 
-	return &errorRequest{
+	return &errorMessage{
 		MessageStr: err.Error(),
-		CodeInt:    http.StatusInternalServerError,
+		Message: Message{
+			CodeInt: http.StatusInternalServerError,
+		},
 	}
 }
 
 func NewInvalidParamsError(msg string) Error {
-	return &errorRequest{
+	return &errorMessage{
 		MessageStr: msg,
-		CodeInt:    http.StatusBadRequest,
+		Message:    Message{CodeInt: http.StatusBadRequest},
 	}
 }
 
 func NewError(msg string, code int, data interface{}) Error {
-	return &errorRequest{
+	return &errorMessage{
 		MessageStr: msg,
-		CodeInt:    code,
-		DataIface:  data,
+		Message: Message{
+			CodeInt:   code,
+			DataIface: data,
+		},
 	}
 }
 
 func NewErrorFromJSON(j json.RawMessage) Error {
-	var parsed errorRequest
+	var parsed errorMessage
 	err := json.Unmarshal(j, &parsed)
 	if err != nil {
 		return nil

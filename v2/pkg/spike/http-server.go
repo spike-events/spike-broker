@@ -218,7 +218,7 @@ func (h *httpServer) httpHandler(p rids.Pattern, w http.ResponseWriter, r *http.
 	}
 
 	parsedResponse := broker.NewErrorFromJSON(result)
-	if parsedResponse != nil && parsedResponse.Message() != "" {
+	if parsedResponse != nil && parsedResponse.Error() != "" {
 		w.WriteHeader(parsedResponse.Code())
 		w.Write(parsedResponse.ToJSON())
 		return
@@ -242,11 +242,21 @@ func (h *httpServer) httpHandler(p rids.Pattern, w http.ResponseWriter, r *http.
 		}
 	}
 
-	if data, err = json.Marshal(parsedResponse.Data()); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+	if payload, valid := parsedResponse.Data().(json.RawMessage); valid {
+		if data, err = json.Marshal(payload); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+		} else {
+			w.WriteHeader(http.StatusOK)
+			w.Write(data)
+		}
 	} else {
-		w.WriteHeader(http.StatusOK)
-		w.Write(data)
+		if data, err = json.Marshal(parsedResponse.Data()); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write(data)
+		}
 	}
 }
