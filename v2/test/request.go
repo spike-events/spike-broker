@@ -3,6 +3,7 @@ package test
 import (
 	"encoding/json"
 	"io/ioutil"
+	"math"
 	"net/http"
 	"strings"
 
@@ -34,13 +35,16 @@ func Request(p rids.Pattern, param interface{}, rs interface{}, token ...string)
 
 	defer res.Body.Close()
 
-	body, err := ioutil.ReadAll(res.Body)
+	if math.Abs(float64(res.StatusCode-http.StatusOK)) >= 100 {
+		return broker.NewError("request failed", res.StatusCode, res)
+	}
 
+	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return broker.InternalError(err)
 	}
 
-	rError := broker.NewErrorFromJSON(body)
+	rError := broker.NewMessageFromJSON(body)
 	if rError != nil && rError.Code() > http.StatusOK {
 		return rError
 	}

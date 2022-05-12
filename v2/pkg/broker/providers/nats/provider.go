@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"regexp"
@@ -263,18 +264,21 @@ func (s *Provider) Request(p rids.Pattern, payload interface{}, rs interface{}, 
 		s.printDebug("nats: request to endpoint %s successful", p.EndpointName())
 	}
 
-	eError := broker.NewErrorFromJSON(result)
-	if eError != nil || (eError.Code() != http.StatusOK) {
-		return eError
+	bMsg := broker.NewMessageFromJSON(result)
+	if bMsg == nil {
+		return broker.NewError("invalid payload", http.StatusInternalServerError, result)
+	}
+
+	if math.Abs(float64(bMsg.Code()-http.StatusOK)) >= 100 {
+		return bMsg
 	}
 
 	if rs != nil {
-		data, ok := eError.Data().([]byte)
-		if !ok {
-			return broker.NewError("invalid response payload", http.StatusExpectationFailed, eError.Data())
-		}
-		err := json.Unmarshal(data, rs)
+		data, err := json.Marshal(bMsg.Data())
 		if err != nil {
+			return broker.InternalError(err)
+		}
+		if err = json.Unmarshal(data, rs); err != nil {
 			return broker.InternalError(err)
 		}
 	}

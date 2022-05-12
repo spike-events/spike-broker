@@ -87,7 +87,7 @@ func (s *ServiceTest) reply(c broker.Call) {
 func (s *ServiceTest) fromMock(c broker.Call) {
 	id, _ := uuid.NewV4()
 	var replyID uuid.UUID
-	err := s.Broker().Request(ServiceTestRid().TestReply(id), id, &replyID)
+	err := s.Broker().Request(ServiceTestRid().TestReply(id), id, &replyID, c.RawToken())
 	if err != nil {
 		c.Error(err)
 		return

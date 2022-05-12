@@ -70,10 +70,8 @@ func (s *NatsTest) SetupSuite() {
 
 	// Initialize HTTP Server
 	httpServer := spike.NewHttpServer(s.ctx, spike.HttpOptions{
-		Broker: broker,
-		Handlers: []rids.Pattern{
-			ServiceTestRid().TestReply(),
-		},
+		Broker:        broker,
+		Resources:     []rids.Resource{ServiceTestRid()},
 		Authenticator: authenticator,
 		Authorizer:    authorizer,
 		WSPrefix:      "ws",
@@ -106,6 +104,13 @@ func (s *NatsTest) TestReplyWithToken() {
 	err := Request(ServiceTestRid().TestReply(s.id), s, &id, "token-string")
 	s.Require().ErrorIs(err, nil, "error response")
 	s.Require().Equal(s.id, id, "invalid response")
+}
+
+func (s *NatsTest) TestInternalServiceCall() {
+	var id uuid.UUID
+	err := Request(ServiceTestRid().FromMock(), nil, &id, "token-string")
+	s.Require().ErrorIs(err, nil, "error response")
+	s.Require().NotEqual(id, uuid.Nil, "invalid id received")
 }
 
 func TestNats(t *testing.T) {

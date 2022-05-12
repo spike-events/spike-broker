@@ -9,7 +9,9 @@ type Authorizer struct {
 }
 
 func (a Authorizer) HasPermission(c broker.Call) bool {
-	if c.Endpoint().EndpointName() == ServiceTestRid().TestReply().EndpointName() {
+	switch c.Endpoint().EndpointName() {
+	case ServiceTestRid().TestReply().EndpointName(),
+		ServiceTestRid().FromMock().EndpointName():
 		return true
 	}
 	return false

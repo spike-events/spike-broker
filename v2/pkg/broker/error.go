@@ -85,7 +85,7 @@ func NewError(msg string, code int, data interface{}) Error {
 	}
 }
 
-func NewErrorFromJSON(j json.RawMessage) Error {
+func NewMessageFromJSON(j json.RawMessage) Error {
 	var parsed errorMessage
 	err := json.Unmarshal(j, &parsed)
 	if err != nil {

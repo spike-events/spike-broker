@@ -30,5 +30,5 @@ func (s *serviceTestRid) ForbiddenCall() rids.Pattern {
 }
 
 func (s *serviceTestRid) FromMock() rids.Pattern {
-	return s.NewMethod("Emulate an endpoint to be used on mock", "from.mock").Internal()
+	return s.NewMethod("Emulate an endpoint to be used on mock", "from.mock").Get()
 }
