@@ -39,10 +39,9 @@ func (s *serviceImpl) StartService() error {
 	}
 
 	s.broker.SetHandler(func(p rids.Pattern, payload []byte, replyEndpoint string) {
-		call, err := broker.NewCallFromJSON(payload)
+		call, err := broker.NewCallFromJSON(payload, p, replyEndpoint)
 		if err == nil {
 			call.SetProvider(s.broker)
-			call.SetReply(replyEndpoint)
 			access := broker.NewAccess(call)
 			handleRequest(p, call, access, *s.opts)
 		}

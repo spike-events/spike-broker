@@ -1,18 +1,8 @@
-package test
+package v1
 
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gofrs/uuid"
-	"github.com/nats-io/nats.go"
-	"github.com/spike-events/spike-broker"
-	"github.com/spike-events/spike-broker/pkg/models"
-	"github.com/spike-events/spike-broker/pkg/providers"
-	"github.com/spike-events/spike-broker/pkg/rids"
-	"github.com/spike-events/spike-broker/pkg/service"
-	"github.com/spike-events/spike-broker/pkg/service/request"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -20,6 +10,17 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/gofrs/uuid"
+	"github.com/nats-io/nats.go"
+	spikebroker "github.com/spike-events/spike-broker"
+	"github.com/spike-events/spike-broker/pkg/models"
+	"github.com/spike-events/spike-broker/pkg/providers"
+	"github.com/spike-events/spike-broker/pkg/rids"
+	"github.com/spike-events/spike-broker/pkg/service"
+	"github.com/spike-events/spike-broker/pkg/service/request"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 type QueryFilter struct {
@@ -196,7 +197,9 @@ func TestService(t *testing.T) {
 		NewConfigService,
 	}
 
-	os.Remove("gorm.db")
+	if err := os.Remove("gorm.db"); err != nil {
+		log.Printf("could not remove gorm.db old database: %s", err)
+	}
 	db, err := gorm.Open(sqlite.Open("gorm.db"), &gorm.Config{})
 	_, connected, err := spikebroker.NewProxyServer(db, services,
 		func(db *gorm.DB, key uuid.UUID) service.Auth {
@@ -240,6 +243,9 @@ func TestService(t *testing.T) {
 	rErr = Request(OtherConfig().GetServiceConfig(Config().Name()), "error", nil)
 	if rErr == nil {
 		t.FailNow()
+	}
+	if err := os.Remove("gorm.db"); err != nil {
+		log.Printf("could not remove gorm.db old database: %s", err)
 	}
 }
 

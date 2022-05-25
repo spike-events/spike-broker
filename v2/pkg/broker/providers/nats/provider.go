@@ -133,6 +133,8 @@ func (s *Provider) Close() {
 			bus.Close()
 		}
 	})
+	globalConnections.Unlink(globalConnections.Len() - 1)
+	globalConnections = nil
 	if s.localNats != nil {
 		s.localNats.Shutdown()
 	}

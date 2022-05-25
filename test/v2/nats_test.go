@@ -1,4 +1,4 @@
-package test
+package v2
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gofrs/uuid"
+	"github.com/spike-events/spike-broker/v2/pkg/broker"
 	"github.com/spike-events/spike-broker/v2/pkg/broker/providers/nats"
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
 	"github.com/spike-events/spike-broker/v2/pkg/spike"
@@ -17,8 +18,17 @@ import (
 
 type NatsTest struct {
 	suite.Suite
-	id  uuid.UUID
-	ctx context.Context
+	id     uuid.UUID
+	ctx    context.Context
+	spike  spike.APIService
+	http   spike.HttpServer
+	broker broker.Provider
+}
+
+func (s *NatsTest) TearDownSuite() {
+	s.spike.Stop()
+	s.http.Shutdown()
+	s.broker.Close()
 }
 
 func (s *NatsTest) SetupSuite() {
@@ -42,7 +52,7 @@ func (s *NatsTest) SetupSuite() {
 	authorizer := NewAuthorizer()
 
 	// Initialize NATS
-	broker := nats.NewNatsProvider(nats.Config{
+	s.broker = nats.NewNatsProvider(nats.Config{
 		LocalNats:      true,
 		LocalNatsDebug: false,
 		LocalNatsTrace: false,
@@ -51,9 +61,9 @@ func (s *NatsTest) SetupSuite() {
 	})
 
 	// Initialize Spike providing Service
-	spkService := spike.NewAPIService()
-	err = spkService.RegisterService(spike.Options{
-		Service:       NewServiceTest(broker, logger),
+	s.spike = spike.NewAPIService()
+	err = s.spike.RegisterService(spike.Options{
+		Service:       NewServiceTest(s.broker, logger),
 		Authenticator: authenticator,
 		Authorizer:    authorizer,
 		Timeout:       2 * time.Minute,
@@ -63,14 +73,14 @@ func (s *NatsTest) SetupSuite() {
 		return
 	}
 
-	if err = spkService.StartService(); err != nil {
+	if err = s.spike.StartService(); err != nil {
 		s.FailNow("failed to start the service")
 		return
 	}
 
 	// Initialize HTTP Server
-	httpServer := spike.NewHttpServer(s.ctx, spike.HttpOptions{
-		Broker:        broker,
+	s.http = spike.NewHttpServer(s.ctx, spike.HttpOptions{
+		Broker:        s.broker,
 		Resources:     []rids.Resource{ServiceTestRid()},
 		Authenticator: authenticator,
 		Authorizer:    authorizer,
@@ -79,7 +89,7 @@ func (s *NatsTest) SetupSuite() {
 		Address:       ":3333",
 	})
 
-	if err = httpServer.ListenAndServe(); err != nil {
+	if err = s.http.ListenAndServe(); err != nil {
 		s.FailNow("failed to start http server:", err)
 		return
 	}

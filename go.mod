@@ -20,6 +20,5 @@ require (
 	github.com/vincent-petithory/dataurl v0.0.0-20191104211930-d1553a71de50
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
-	gorm.io/driver/sqlite v1.1.4
 	gorm.io/gorm v1.21.14
 )

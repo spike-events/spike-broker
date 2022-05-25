@@ -1,4 +1,4 @@
-package test
+package v2
 
 import (
 	"context"
@@ -29,7 +29,9 @@ func (s *ServiceTest) Start(key uuid.UUID, ctx context.Context) error {
 }
 
 func (s *ServiceTest) Stop() chan bool {
-	return make(chan bool, 1)
+	c := make(chan bool, 1)
+	c <- true
+	return c
 }
 
 func (s *ServiceTest) Handlers() []broker.Subscription {

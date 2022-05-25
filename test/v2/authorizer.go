@@ -1,4 +1,4 @@
-package test
+package v2
 
 import (
 	"github.com/spike-events/spike-broker/v2/pkg/broker"

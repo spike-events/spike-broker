@@ -1,4 +1,4 @@
-package test
+package v2
 
 import (
 	"context"
@@ -20,6 +20,10 @@ type UnitTest struct {
 	id  uuid.UUID
 	ctx context.Context
 	svc spike.APITestService
+}
+
+func (u *UnitTest) TearDownSuite() {
+	u.svc.Stop()
 }
 
 func (u *UnitTest) SetupSuite() {

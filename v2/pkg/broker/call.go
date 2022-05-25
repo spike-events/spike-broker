@@ -3,13 +3,8 @@ package broker
 import (
 	"encoding/json"
 	"fmt"
-	"log"
-	"net/http"
-	"os"
-	"runtime/debug"
 	"time"
 
-	"github.com/hetiansu5/urlquery"
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
 	spike_utils "github.com/spike-events/spike-broker/v2/pkg/spike-utils"
 	"github.com/vincent-petithory/dataurl"
@@ -38,10 +33,8 @@ type Call interface {
 	GetError() Error
 	Error(err error, msg ...string)
 
-	SetReply(reply string)
 	SetToken(token string)
 	SetProvider(provider Provider)
-	SetEndpoint(p rids.Pattern)
 }
 
 // NewCall returns a Call interface instance
@@ -60,18 +53,37 @@ func NewCall(p rids.Pattern, data interface{}) Call {
 	}
 
 	return &call{
-		Data:            payload,
-		EndpointPattern: p,
+		callBase: callBase{
+			Data:            payload,
+			EndpointPattern: p,
+		},
+		APIVersion: 2,
 	}
 }
 
-func NewCallFromJSON(callJSON json.RawMessage) (Call, error) {
-	// TODO: Support v1 JSON version
+func NewCallFromJSON(callJSON json.RawMessage, p rids.Pattern, reply string) (Call, error) {
+	type apiVersion struct {
+		APIVersion int `json:"apiVersion"`
+	}
+
+	var version apiVersion
+	_ = json.Unmarshal(callJSON, &version)
+
+	if version.APIVersion != 2 {
+		// Version 1
+		v1Call, err := NewCallV1FromJSON(callJSON, p, reply)
+		if err != nil {
+			return nil, err
+		}
+		return v1Call, nil
+	}
+
 	var c call
 	err := json.Unmarshal(callJSON, &c)
 	if err != nil {
 		return nil, err
 	}
+	c.ReplyStr = reply
 	return &c, nil
 }
 
@@ -85,13 +97,8 @@ func NewHTTPCall(p rids.Pattern, token string, data interface{}, params map[stri
 
 // CallRequest handler
 type call struct {
-	Data            interface{}  `json:"data"`
-	ReplyStr        string       `json:"reply"`
-	EndpointPattern rids.Pattern `json:"endpointPattern"`
-	Token           string       `json:"token"`
-
-	provider Provider
-	err      Error
+	callBase
+	APIVersion int `json:"apiVersion"`
 }
 
 func (c *call) UnmarshalJSON(data []byte) error {
@@ -100,6 +107,7 @@ func (c *call) UnmarshalJSON(data []byte) error {
 		ReplyStr        string          `json:"reply"`
 		EndpointPattern json.RawMessage `json:"endpointPattern"`
 		Token           string          `json:"token"`
+		APIVersion      int             `json:"apiVersion"`
 	}
 	var callInner callInnerType
 	err := json.Unmarshal(data, &callInner)
@@ -115,270 +123,14 @@ func (c *call) UnmarshalJSON(data []byte) error {
 	c.ReplyStr = callInner.ReplyStr
 	c.EndpointPattern = pattern
 	c.Token = callInner.Token
+	c.APIVersion = 2
 	return nil
 }
 
-func (c *call) Endpoint() rids.Pattern {
-	return c.EndpointPattern
-}
-
-func (c *call) SetEndpoint(p rids.Pattern) {
-	c.EndpointPattern = p
-}
-
-func (c *call) Provider() Provider {
-	return c.provider
-}
-
-func (c *call) Reply() string {
-	return c.ReplyStr
-}
-
-func (c *call) RawData() interface{} {
-	return c.Data
-}
-
-func (c *call) SetReply(reply string) {
-	c.ReplyStr = reply
-}
-
-func (c *call) SetProvider(provider Provider) {
-	c.provider = provider
-}
-
-func (c *call) SetToken(token string) {
-	c.Token = token
-}
-
-func (c *call) RawToken() string {
-	return c.Token
-}
-
-// ParseToken logado
-func (c *call) ParseToken(t interface{}) {
-	token := c.Token
-	if len(token) > 0 {
-		err := json.Unmarshal([]byte(token), &t)
-		if err != nil {
-			panic("invalid token on unmarshal")
-		}
-	}
-}
-
-// PathParam retorna parametro map string
-func (c *call) PathParam(key string) string {
-	params := c.Endpoint().Params()
-	if params == nil {
-		return ""
-	}
-	if _, ok := params[key]; !ok {
-		return ""
-	}
-	return params[key].String()
-}
-
-// ParseData data
-func (c *call) ParseData(v interface{}) error {
-	switch c.Data.(type) {
-	case []byte:
-		return json.Unmarshal(c.Data.(json.RawMessage), v)
-	}
-	v = c.Data
-	return nil
-}
-
-// ToJSON CallRequest
 func (c *call) ToJSON() json.RawMessage {
-	//if c.EndpointPattern.Version() == 1 {
-	//
-	//	cV1 := &callV1{
-	//		Params:   nil,
-	//		DataIface:     nil,
-	//		Token:    "",
-	//		Query:    "",
-	//		Endpoint: "",
-	//	}
-	//}
 	data, err := json.Marshal(c)
 	if err != nil {
 		panic(err)
 	}
 	return data
-}
-
-// FromJSON builds the Call struct from raw data
-func (c *call) FromJSON(data json.RawMessage, provider Provider, reply string) error {
-	if len(data) > 0 {
-		err := json.Unmarshal(data, c)
-		if err != nil {
-			return err
-		}
-	}
-	var ok bool
-	c.provider, ok = provider.(Provider)
-	if !ok {
-		return fmt.Errorf("invalid provider %v", provider)
-	}
-	c.ReplyStr = reply
-	return nil
-}
-
-func (c *call) File(f *dataurl.DataURL) {
-	if c.ReplyStr == "" {
-		return
-	}
-
-	var success Message
-	success.CodeInt = http.StatusOK
-	payload, err := json.Marshal(f)
-	if err != nil {
-		panic(err)
-	}
-	success.DataIface = payload
-	data, err := json.Marshal(&success)
-	if err != nil {
-		panic(err)
-	}
-	err = c.provider.PublishRaw(c.ReplyStr, data)
-}
-
-// OK result
-func (c *call) OK(result ...interface{}) {
-	if c.ReplyStr == "" {
-		return
-	}
-
-	var success Message
-	success.CodeInt = http.StatusOK
-
-	if len(result) == 0 {
-		data, err := json.Marshal(&success)
-		if err != nil {
-			panic(err)
-		}
-		err = c.provider.PublishRaw(c.ReplyStr, data)
-		if err != nil {
-			log.Printf("request: failed to publish OK without result on %s inbox %s: %v",
-				c.EndpointPattern, c.ReplyStr, err)
-		}
-		return
-	}
-
-	switch result[0].(type) {
-	case string:
-		success.DataIface = []byte(result[0].(string))
-		data, err := json.Marshal(&success)
-		if err != nil {
-			panic(err)
-		}
-		err = c.provider.PublishRaw(c.ReplyStr, data)
-		if err != nil {
-			log.Printf("request: failed to publish OK string result on %s inbox %s: %v",
-				c.EndpointPattern, c.ReplyStr, err)
-		}
-		return
-	case []byte:
-		success.DataIface = result[0].([]byte)
-		data, err := json.Marshal(&success)
-		if err != nil {
-			panic(err)
-		}
-		err = c.provider.PublishRaw(c.ReplyStr, data)
-		if err != nil {
-			log.Printf("request: failed to publish OK []byte result on %s inbox %s: %v",
-				c.EndpointPattern, c.ReplyStr, err)
-		}
-		return
-	}
-
-	// Make sure we always marshal pointer structures
-	result[0] = spike_utils.PointerFromInterface(result[0])
-	success.DataIface = result[0]
-	data, err := json.Marshal(&success)
-	if err != nil {
-		panic(err)
-	}
-	err = c.provider.PublishRaw(c.ReplyStr, data)
-	if err != nil {
-		log.Printf("request: failed to publish OK JSON on %s inbox %s: %v", c.EndpointPattern, c.ReplyStr, err)
-	}
-}
-
-func (c *call) GetError() Error {
-	return c.err
-}
-
-// InternalError result
-func (c *call) InternalError(err error) {
-	c.Error(InternalError(err))
-}
-
-// Error result
-func (c *call) Error(err error, msg ...string) {
-	if err == nil {
-		panic("error request cant be nil")
-	}
-	err = Trace(err, 1)
-	if brokerErr, ok := err.(Error); ok {
-		c.error(brokerErr)
-	} else {
-		c.InternalError(err)
-	}
-}
-
-// Timeout informs the max timeout for this request
-func (c *call) Timeout(timeout time.Duration) {
-	if c.ReplyStr == "" {
-		return
-	}
-
-	if timeout <= 100*time.Millisecond {
-		timeout = 100 * time.Millisecond
-	}
-
-	err := c.provider.PublishRaw(c.ReplyStr, []byte(fmt.Sprintf("timeout:%d", int(timeout))))
-	if err != nil {
-		log.Printf("request: failed to publish Timeout on %s inbox %s: %v", c.EndpointPattern, c.ReplyStr, err)
-	}
-}
-
-// Error result
-func (c *call) error(err Error) {
-	if c.ReplyStr == "" {
-		return
-	}
-
-	logLevel := os.Getenv("API_LOG_LEVEL")
-	if logLevel == "DEBUG" || logLevel == "ERROR" {
-		log.Printf("api error: endpoint %s inbox %s: %v", c.EndpointPattern, c.ReplyStr, err)
-		if logLevel == "DEBUG" {
-			log.Printf("api error debug: %s", debug.Stack())
-		}
-	}
-
-	err2 := c.provider.PublishRaw(c.ReplyStr, err.ToJSON())
-	if err2 != nil {
-		log.Printf("request: failed to publish error response on %s inbox %s: %v", c.EndpointPattern,
-			c.ReplyStr, err2)
-	}
-}
-
-func (c *call) ParseQuery(q interface{}) error {
-	query := c.EndpointPattern.QueryParams()
-	switch query.(type) {
-	case string:
-		return urlquery.Unmarshal([]byte(query.(string)), q)
-	case nil:
-		return nil
-	default:
-		data, err := json.Marshal(query)
-		if err != nil {
-			return err
-		}
-		return json.Unmarshal(data, q)
-	}
-}
-
-func (c *call) NotFound() {
-	c.error(ErrorNotFound)
 }
