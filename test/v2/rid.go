@@ -32,3 +32,7 @@ func (s *serviceTestRid) ForbiddenCall() rids.Pattern {
 func (s *serviceTestRid) FromMock() rids.Pattern {
 	return s.NewMethod("Emulate an endpoint to be used on mock", "from.mock").Get()
 }
+
+func (s *serviceTestRid) CallV1() rids.Pattern {
+	return s.NewMethod("Call a Spike V1 service method", "callV1").Get()
+}

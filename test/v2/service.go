@@ -46,6 +46,11 @@ func (s *ServiceTest) Handlers() []broker.Subscription {
 			Handler:    s.fromMock,
 			Validators: nil,
 		},
+		{
+			Resource:   ServiceTestRid().CallV1(),
+			Handler:    s.callV1,
+			Validators: nil,
+		},
 	}
 }
 
@@ -96,6 +101,17 @@ func (s *ServiceTest) fromMock(c broker.Call) {
 	}
 
 	c.OK(&replyID)
+}
+
+func (s *ServiceTest) callV1(c broker.Call) {
+	id, _ := uuid.NewV4()
+	var rID uuid.UUID
+	err := s.Broker().Request(V2RidForV1Service().AnswerV2Service(id), &id, &rID, "token-string")
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	c.OK(&rID)
 }
 
 func NewServiceTest(broker broker.Provider, logger service.Logger) service.Service {

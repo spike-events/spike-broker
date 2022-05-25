@@ -14,6 +14,7 @@ import (
 	"github.com/spike-events/spike-broker/pkg/models"
 	"github.com/spike-events/spike-broker/pkg/providers"
 	"github.com/spike-events/spike-broker/pkg/service"
+	"github.com/spike-events/spike-broker/v2/pkg/broker"
 	nats2 "github.com/spike-events/spike-broker/v2/pkg/broker/providers/nats"
 	"github.com/spike-events/spike-broker/v2/pkg/spike"
 	"github.com/stretchr/testify/suite"
@@ -23,8 +24,9 @@ import (
 
 type V1Test struct {
 	suite.Suite
-	id  uuid.UUID
-	ctx context.Context
+	id     uuid.UUID
+	ctx    context.Context
+	broker broker.Provider
 }
 
 func (v1 *V1Test) SetupSuite() {
@@ -51,7 +53,7 @@ func (v1 *V1Test) SetupSuite() {
 	authorizer := NewAuthorizer()
 
 	// Initialize NATS
-	broker := nats2.NewNatsProvider(nats2.Config{
+	v1.broker = nats2.NewNatsProvider(nats2.Config{
 		LocalNats:      true,
 		LocalNatsDebug: false,
 		LocalNatsTrace: false,
@@ -62,7 +64,7 @@ func (v1 *V1Test) SetupSuite() {
 	// Initialize Spike providing Service
 	spkService := spike.NewAPIService()
 	err = spkService.RegisterService(spike.Options{
-		Service:       NewServiceTest(broker, logger),
+		Service:       NewServiceTest(v1.broker, logger),
 		Authenticator: authenticator,
 		Authorizer:    authorizer,
 		Timeout:       10 * time.Minute,
@@ -109,15 +111,21 @@ func (v1 *V1Test) SetupSuite() {
 func (v1 *V1Test) TestV1ToV2Request() {
 	id, _ := uuid.NewV4()
 	var retID uuid.UUID
-	rErr := RequestV1(V1Service().CallV2Service(id.String()), nil, &retID)
-	v1.Nil(rErr, "failed")
+	err := RequestV1(V1Service().CallV2Service(id.String()), nil, &retID)
+	v1.Nil(err, "failed")
 	v1.Equal(id.String(), retID.String(), "invalid response")
+}
+
+func (v1 *V1Test) TestV2ToV1Request() {
+	err := v1.broker.Request(ServiceTestRid().CallV1(), nil, nil, "token-string")
+	v1.Nil(err, "failed")
 }
 
 func (v1 *V1Test) TearDownSuite() {
 	if err := os.Remove("gorm.db"); err != nil {
 		log.Printf("could not remove gorm.db old database: %s", err)
 	}
+	v1.broker.Close()
 }
 
 func TestV1Compatibility(t *testing.T) {

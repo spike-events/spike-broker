@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hetiansu5/urlquery"
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
-	spike_utils "github.com/spike-events/spike-broker/v2/pkg/spike-utils"
+	spikeUtils "github.com/spike-events/spike-broker/v2/pkg/spike-utils"
 	"github.com/vincent-petithory/dataurl"
 )
 
@@ -45,7 +46,7 @@ func NewCall(p rids.Pattern, data interface{}) Call {
 	case []byte:
 	case nil:
 	default:
-		data = spike_utils.PointerFromInterface(data)
+		data = spikeUtils.PointerFromInterface(data)
 		payload, err = json.Marshal(data)
 		if err != nil {
 			panic(err)
@@ -128,7 +129,39 @@ func (c *call) UnmarshalJSON(data []byte) error {
 }
 
 func (c *call) ToJSON() json.RawMessage {
-	data, err := json.Marshal(c)
+	type callV1Compatible struct {
+		callBase
+		Params     map[string]string `json:"Params"`
+		TokenV1    string            `json:"Token"`
+		QueryV1    string            `json:"Query"`
+		APIVersion int               `json:"apiVersion"`
+	}
+
+	params := make(map[string]string)
+	for i, param := range c.EndpointPattern.Params() {
+		params[i] = param.String()
+	}
+
+	query := c.EndpointPattern.QueryParams()
+	var queryStr string
+	switch query.(type) {
+	case string:
+		queryStr = query.(string)
+	case nil:
+	default:
+		if q, err := urlquery.Marshal(query); err == nil {
+			queryStr = string(q)
+		}
+	}
+
+	toSend := &callV1Compatible{
+		callBase:   c.callBase,
+		Params:     params,
+		TokenV1:    c.Token,
+		QueryV1:    queryStr,
+		APIVersion: c.APIVersion,
+	}
+	data, err := json.Marshal(toSend)
 	if err != nil {
 		panic(err)
 	}

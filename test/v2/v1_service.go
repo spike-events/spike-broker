@@ -32,6 +32,10 @@ func (c *v1ServiceRid) CallV2Service(param ...string) *rids.Pattern {
 	return c.NewMethod("callV2Service", "callV2Service.$param", param...).NoAuth().Get()
 }
 
+func (c *v1ServiceRid) AnswerV2(params ...string) *rids.Pattern {
+	return c.NewMethod("", "answerV2Service.$ID", params...).Post()
+}
+
 // V2 Service RID declared with V1 format
 type v2ServiceRid struct {
 	rids.Base
@@ -67,6 +71,7 @@ func (s *v1Service) Dependencies() []string {
 func (s *v1Service) Start() {
 	s.Init(nil, func() {
 		s.Broker().Subscribe(V1Service().CallV2Service(), s.callV2Service)
+		s.Broker().Subscribe(V1Service().AnswerV2(), s.answerV2Service)
 	})
 }
 
@@ -85,6 +90,23 @@ func (s *v1Service) callV2Service(r *request.CallRequest) {
 	}
 
 	r.OK(&retID)
+}
+
+func (s *v1Service) answerV2Service(r *request.CallRequest) {
+	id, err := uuid.FromString(r.PathParam("ID"))
+	if err != nil {
+		r.Error(err)
+		return
+	}
+
+	var paylodID uuid.UUID
+	err = r.ParseData(&paylodID)
+	if err != nil {
+		r.Error(err)
+		return
+	}
+
+	r.OK(&id)
 }
 
 // Authenticator

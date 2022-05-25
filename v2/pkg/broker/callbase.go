@@ -13,7 +13,7 @@ import (
 )
 
 type callBase struct {
-	Data            interface{}  `json:"data"`
+	Data            interface{}  `json:"Data"` // As V1 uses upper case on JSON notation we keep data this way
 	ReplyStr        string       `json:"reply"`
 	EndpointPattern rids.Pattern `json:"endpointPattern"`
 	Token           string       `json:"token"`
