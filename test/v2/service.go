@@ -51,6 +51,10 @@ func (s *ServiceTest) Handlers() []broker.Subscription {
 			Handler:    s.callV1,
 			Validators: nil,
 		},
+		{
+			Resource: ServiceTestRid().CallV1Forbidden(),
+			Handler:  s.callV1Forbidden,
+		},
 	}
 }
 
@@ -112,6 +116,10 @@ func (s *ServiceTest) callV1(c broker.Call) {
 		return
 	}
 	c.OK(&rID)
+}
+
+func (s *ServiceTest) callV1Forbidden(c broker.Call) {
+
 }
 
 func NewServiceTest(broker broker.Provider, logger service.Logger) service.Service {

@@ -24,3 +24,7 @@ func V2RidForV1Service() *v2RidForV1 {
 func (v *v2RidForV1) AnswerV2Service(id ...fmt.Stringer) rids.Pattern {
 	return v.NewMethod("", "answerV2Service.$ID", id...).Post()
 }
+
+func (v *v2RidForV1) AnswerV2Forbidden() rids.Pattern {
+	return v.NewMethod("", "answerV2Forbidden").Get()
+}

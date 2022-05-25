@@ -36,6 +36,10 @@ func (c *v1ServiceRid) AnswerV2(params ...string) *rids.Pattern {
 	return c.NewMethod("", "answerV2Service.$ID", params...).Post()
 }
 
+func (c *v1ServiceRid) AnswerV2Forbidden() *rids.Pattern {
+	return c.NewMethod("", "answerV2Forbidden").Get()
+}
+
 // V2 Service RID declared with V1 format
 type v2ServiceRid struct {
 	rids.Base
@@ -72,6 +76,7 @@ func (s *v1Service) Start() {
 	s.Init(nil, func() {
 		s.Broker().Subscribe(V1Service().CallV2Service(), s.callV2Service)
 		s.Broker().Subscribe(V1Service().AnswerV2(), s.answerV2Service)
+		s.Broker().Subscribe(V1Service().AnswerV2Forbidden(), s.answerV2Forbidden)
 	})
 }
 
@@ -107,6 +112,10 @@ func (s *v1Service) answerV2Service(r *request.CallRequest) {
 	}
 
 	r.OK(&id)
+}
+
+func (s *v1Service) answerV2Forbidden(r *request.CallRequest) {
+	r.ErrorRequest(&request.ErrorStatusForbidden)
 }
 
 // Authenticator

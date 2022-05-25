@@ -3,6 +3,7 @@ package v2
 import (
 	"context"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
 	"testing"
@@ -119,6 +120,11 @@ func (v1 *V1Test) TestV1ToV2Request() {
 func (v1 *V1Test) TestV2ToV1Request() {
 	err := v1.broker.Request(ServiceTestRid().CallV1(), nil, nil, "token-string")
 	v1.Nil(err, "failed")
+}
+
+func (v1 *V1Test) TestV1SendErrorToV2() {
+	err := v1.broker.Request(V2RidForV1Service().AnswerV2Forbidden(), nil, nil, "token-string")
+	v1.Equal(err.Code(), http.StatusForbidden, "invalid response")
 }
 
 func (v1 *V1Test) TearDownSuite() {
