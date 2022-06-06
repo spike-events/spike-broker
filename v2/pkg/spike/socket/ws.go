@@ -20,25 +20,27 @@ const (
 
 // NewConnectionWS socket
 func NewConnectionWS(options Options) func(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithCancel(context.Background())
+	//ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		sigs := make(chan os.Signal, 1)
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 		<-sigs
-		cancel()
+		//cancel()
 	}()
 	return func(w http.ResponseWriter, r *http.Request) {
 		var upgrader = websocket.Upgrader{}
 		upgrader.CheckOrigin = func(r *http.Request) bool {
 			return true
 		}
+		upgrader.ReadBufferSize = 0
+		upgrader.WriteBufferSize = 0
 		c, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			log.Printf("upgrade: %v", err)
 			return
 		}
 		conn := newConnection(c, options)
-		go wsHandler(ctx, conn)
+		go wsHandler(conn.Context(), conn)
 	}
 }
 
