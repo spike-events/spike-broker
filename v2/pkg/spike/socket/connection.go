@@ -1,9 +1,7 @@
 package socket
 
 import (
-	"context"
 	"fmt"
-
 	"github.com/gofrs/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/spike-events/spike-broker/v2/pkg/broker"
@@ -27,8 +25,6 @@ type WSConnection interface {
 	GetID() fmt.Stringer
 	GetToken() string
 	GetHandlers() []rids.Pattern
-	Context() context.Context
-	CancelContext()
 	WSConnection() *websocket.Conn
 	Broker() broker.Provider
 	Authenticator() service.Authenticator
@@ -40,8 +36,6 @@ type WSConnection interface {
 
 type wsConnection struct {
 	ID            string `json:"id"`
-	ctx           context.Context
-	cancelCtx     context.CancelFunc
 	ws            *websocket.Conn
 	provider      broker.Provider
 	authenticator service.Authenticator
@@ -62,13 +56,6 @@ func (ws *wsConnection) GetHandlers() []rids.Pattern {
 	return ws.handlers
 }
 
-func (ws *wsConnection) Context() context.Context {
-	return ws.ctx
-}
-
-func (ws *wsConnection) CancelContext() {
-	ws.cancelCtx()
-}
 func (ws *wsConnection) WSConnection() *websocket.Conn {
 	return ws.ws
 }
@@ -98,11 +85,8 @@ func (ws *wsConnection) SetSessionID(id string) {
 }
 func newConnection(conn *websocket.Conn, options Options) WSConnection {
 	id, _ := uuid.NewV4()
-	inCtx, cancel := context.WithCancel(context.Background())
 	return &wsConnection{
 		ID:            id.String(),
-		ctx:           inCtx,
-		cancelCtx:     cancel,
 		ws:            conn,
 		provider:      options.Broker,
 		authenticator: options.Authenticator,

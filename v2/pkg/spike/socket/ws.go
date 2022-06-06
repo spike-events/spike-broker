@@ -1,17 +1,13 @@
 package socket
 
 import (
-	"context"
-	"log"
-	"net/http"
-	"os"
-	"os/signal"
-	"runtime/debug"
-	"syscall"
-
 	"github.com/gorilla/websocket"
 	"github.com/spike-events/spike-broker/v2/pkg/broker"
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
+	"log"
+	"net/http"
+	"runtime/debug"
+	"sync"
 )
 
 const (
@@ -20,13 +16,6 @@ const (
 
 // NewConnectionWS socket
 func NewConnectionWS(options Options) func(w http.ResponseWriter, r *http.Request) {
-	//ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		sigs := make(chan os.Signal, 1)
-		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-		<-sigs
-		//cancel()
-	}()
 	return func(w http.ResponseWriter, r *http.Request) {
 		var upgrader = websocket.Upgrader{}
 		upgrader.CheckOrigin = func(r *http.Request) bool {
@@ -40,13 +29,16 @@ func NewConnectionWS(options Options) func(w http.ResponseWriter, r *http.Reques
 			return
 		}
 		conn := newConnection(c, options)
-		go wsHandler(conn.Context(), conn)
+		go wsHandler(conn)
 	}
 }
 
-func wsHandler(ctx context.Context, c WSConnection) {
+func wsHandler(c WSConnection) {
 	var errorMsg *WSMessage
+	var rw sync.WaitGroup
+	rw.Add(1)
 	defer func() {
+		log.Printf("ws: defer wsHandler")
 		if r := recover(); r != nil {
 			log.Printf("ws: stack error, %v", r)
 			log.Printf(string(debug.Stack()))
@@ -56,9 +48,10 @@ func wsHandler(ctx context.Context, c WSConnection) {
 				log.Printf("ws: failed to close connection %s: %v", c.GetID(), err)
 			}
 		}
+		rw.Done()
 	}()
 	go func() {
-		<-ctx.Done()
+		rw.Wait()
 		log.Printf("ws: context done, disconnecting %s", c.GetID())
 		err := c.WSConnection().Close()
 		if err != nil {
@@ -79,8 +72,8 @@ func wsHandler(ctx context.Context, c WSConnection) {
 		if err != nil {
 			if _, ok := err.(*websocket.CloseError); ok {
 				log.Printf("ws: closed connection %s", c.GetID())
-				c.CancelContext()
 				c.Broker().Publish(rids.Spike().EventSocketDisconnected(c.GetID()), nil, c.GetSessionToken())
+				log.Printf("ws: cancel context %s", c.GetID())
 				return
 			}
 			wsMsg.Type = WSMessageTypeError
