@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 const (
@@ -28,6 +29,9 @@ func NewConnectionWS(srvBase *service.Base, oauth ...*service.AuthRid) func(w ht
 	}()
 	return func(w http.ResponseWriter, r *http.Request) {
 		var upgrader = websocket.Upgrader{}
+		upgrader.ReadBufferSize = 0
+		upgrader.WriteBufferSize = 0
+		upgrader.HandshakeTimeout = time.Minute * 5
 		upgrader.CheckOrigin = func(r *http.Request) bool {
 			return true
 		}
@@ -46,7 +50,6 @@ func wsHandler(ctx context.Context, c *WSConnection) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("ws: stack error, %v", r)
-			//log.Printf(string(debug.Stack()))
 			log.Printf("ws: context done, disconnecting %s", c.ID)
 			err := c.WSConnection().Close()
 			if err != nil {
@@ -55,12 +58,17 @@ func wsHandler(ctx context.Context, c *WSConnection) {
 		}
 	}()
 	go func() {
-		<-ctx.Done()
+		select {
+		case <-ctx.Done():
+		case <-c.Context().Done():
+		}
 		log.Printf("ws: context done, disconnecting %s", c.ID)
 		err := c.WSConnection().Close()
 		if err != nil {
 			log.Printf("ws: failed to close connection %s: %v", c.ID, err)
 		}
+		log.Printf("ws: event socket, disconnecting %s", c.ID)
+		c.Broker().Publish(rids.Route().EventSocketDisconnected(c.ID), nil, c.GetSessionToken())
 	}()
 	for {
 		if errorMsg != nil {
@@ -68,7 +76,6 @@ func wsHandler(ctx context.Context, c *WSConnection) {
 			if err != nil {
 				log.Printf("ws: failed to send error message on connection %s with data %v: %v", c.ID, errorMsg, err)
 				c.CancelContext()
-				c.Broker().Publish(rids.Route().EventSocketDisconnected(c.ID), nil, c.GetSessionToken())
 				return
 			}
 			errorMsg = nil
@@ -80,7 +87,6 @@ func wsHandler(ctx context.Context, c *WSConnection) {
 			if _, ok := err.(*websocket.CloseError); ok {
 				log.Printf("ws: closed connection %s", c.ID)
 				c.CancelContext()
-				c.Broker().Publish(rids.Route().EventSocketDisconnected(c.ID), nil, c.GetSessionToken())
 				return
 			}
 			wsMsg.Type = WSMessageTypeError
