@@ -54,6 +54,7 @@ func wsHandler(c WSConnection) {
 			err := c.WSConnection().WriteJSON(errorMsg)
 			if err != nil {
 				log.Printf("ws: failed to send error message on connection %s with data %v: %v", c.GetID(), errorMsg, err)
+				break
 			}
 			errorMsg = nil
 		}
@@ -63,8 +64,6 @@ func wsHandler(c WSConnection) {
 		if err != nil {
 			if _, ok := err.(*websocket.CloseError); ok {
 				log.Printf("ws: closed connection %s", c.GetID())
-				c.Broker().Publish(rids.Spike().EventSocketDisconnected(c.GetID()), nil, c.GetSessionToken())
-				log.Printf("ws: cancel context %s", c.GetID())
 				break
 			}
 			wsMsg.Type = WSMessageTypeError
@@ -95,4 +94,8 @@ func wsHandler(c WSConnection) {
 	if err != nil {
 		log.Printf("ws: failed to close connection %s: %v", c.GetID(), err)
 	}
+
+	log.Printf("ws: -> publish EventSocketDisconnected %s", c.GetID())
+	c.Broker().Publish(rids.Spike().EventSocketDisconnected(c.GetID()), nil, c.GetSessionToken())
+	log.Printf("ws: <- publish EventSocketDisconnected %s", c.GetID())
 }
