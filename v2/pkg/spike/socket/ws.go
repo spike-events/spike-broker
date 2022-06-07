@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 	"runtime/debug"
-	"sync"
+	"time"
 )
 
 const (
@@ -21,6 +21,7 @@ func NewConnectionWS(options Options) func(w http.ResponseWriter, r *http.Reques
 		upgrader.CheckOrigin = func(r *http.Request) bool {
 			return true
 		}
+		upgrader.HandshakeTimeout = time.Minute * 5
 		upgrader.ReadBufferSize = 0
 		upgrader.WriteBufferSize = 0
 		c, err := upgrader.Upgrade(w, r, nil)
@@ -35,8 +36,6 @@ func NewConnectionWS(options Options) func(w http.ResponseWriter, r *http.Reques
 
 func wsHandler(c WSConnection) {
 	var errorMsg *WSMessage
-	var rw sync.WaitGroup
-	rw.Add(1)
 	defer func() {
 		log.Printf("ws: defer wsHandler")
 		if r := recover(); r != nil {
@@ -48,18 +47,10 @@ func wsHandler(c WSConnection) {
 				log.Printf("ws: failed to close connection %s: %v", c.GetID(), err)
 			}
 		}
-		rw.Done()
-	}()
-	go func() {
-		rw.Wait()
-		log.Printf("ws: context done, disconnecting %s", c.GetID())
-		err := c.WSConnection().Close()
-		if err != nil {
-			log.Printf("ws: failed to close connection %s: %v", c.GetID(), err)
-		}
 	}()
 	for {
 		if errorMsg != nil {
+			log.Printf("ws: error message %s %v", c.GetID(), errorMsg)
 			err := c.WSConnection().WriteJSON(errorMsg)
 			if err != nil {
 				log.Printf("ws: failed to send error message on connection %s with data %v: %v", c.GetID(), errorMsg, err)
@@ -74,7 +65,7 @@ func wsHandler(c WSConnection) {
 				log.Printf("ws: closed connection %s", c.GetID())
 				c.Broker().Publish(rids.Spike().EventSocketDisconnected(c.GetID()), nil, c.GetSessionToken())
 				log.Printf("ws: cancel context %s", c.GetID())
-				return
+				break
 			}
 			wsMsg.Type = WSMessageTypeError
 			wsMsg.Data = broker.InternalError(err)
@@ -97,5 +88,11 @@ func wsHandler(c WSConnection) {
 			errorMsg = &wsMsg
 			continue
 		}
+	}
+
+	log.Printf("ws: context done, disconnecting %s", c.GetID())
+	err := c.WSConnection().Close()
+	if err != nil {
+		log.Printf("ws: failed to close connection %s: %v", c.GetID(), err)
 	}
 }
