@@ -243,6 +243,10 @@ func (s *Base) Init(migration migration.Migration, subscribers ...func()) {
 		panic(fmt.Errorf("invalid provider: %v", os.Getenv("PROVIDER")))
 	}
 
+	if len(subscribers) > 0 {
+		subscribers[0]()
+	}
+
 	if migration != nil {
 		s.Lock("api-migration")
 		err := migration.Migration(s.DB(), s.provider)
@@ -250,10 +254,6 @@ func (s *Base) Init(migration migration.Migration, subscribers ...func()) {
 		if err != nil {
 			panic(err)
 		}
-	}
-
-	if len(subscribers) > 0 {
-		subscribers[0]()
 	}
 }
 
