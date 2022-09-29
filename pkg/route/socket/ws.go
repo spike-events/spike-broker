@@ -56,6 +56,7 @@ func wsHandler(ctx context.Context, c *WSConnection) {
 				log.Printf("ws: failed to close connection %s: %v", c.ID, err)
 			}
 		}
+		c.CancelContext()
 	}()
 	go func() {
 		select {
@@ -73,12 +74,9 @@ func wsHandler(ctx context.Context, c *WSConnection) {
 	for {
 		if errorMsg != nil {
 			err := c.WSConnection().WriteJSON(errorMsg)
-			if err != nil {
-				log.Printf("ws: failed to send error message on connection %s with data %v: %v", c.ID, errorMsg, err)
-				c.CancelContext()
-				return
-			}
-			errorMsg = nil
+			log.Printf("ws: failed to send error message on connection %s with data %v: %v", c.ID, errorMsg, err)
+			c.CancelContext()
+			return
 		}
 
 		var wsMsg WSMessage

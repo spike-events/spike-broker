@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/go-chi/chi"
 	"github.com/gofrs/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/spike-events/spike-broker/pkg/models"
@@ -35,6 +36,7 @@ type Service interface {
 	Start()
 	StartAfterDependency(dep string)
 	AllServicesStarted()
+	HandlerFunc(r *chi.Mux)
 	Stop()
 	Rid() rids.BaseRid
 	SetOptions(options models.ProxyOptions)
@@ -77,6 +79,10 @@ func NewBaseService(db *gorm.DB, key uuid.UUID, rid rids.BaseRid) *Base {
 // SetOptions set options config
 func (s *Base) SetOptions(options models.ProxyOptions) {
 	s.options = options
+}
+
+func (s *Base) HandlerFunc(r *chi.Mux) {
+
 }
 
 // SetContext set context on base
