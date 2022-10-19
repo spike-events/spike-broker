@@ -28,11 +28,7 @@ func (c *callRequest) RawToken() string {
 }
 
 func (c *callRequest) RawData() interface{} {
-	data, err := json.Marshal(c.payload)
-	if err != nil {
-		panic("invalid data on marshal")
-	}
-	return data
+	return c.payload
 }
 
 func (c *callRequest) Reply() string {
@@ -69,8 +65,16 @@ func (c *callRequest) PathParam(key string) string {
 }
 
 func (c *callRequest) ParseData(v interface{}) error {
-	data := c.RawData()
-	return json.Unmarshal(data.(json.RawMessage), v)
+	switch c.payload.(type) {
+	case []byte:
+		return json.Unmarshal(c.payload.(json.RawMessage), v)
+	}
+	marshaled, err := json.Marshal(c.payload)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(marshaled, v)
+	return err
 }
 
 func (c *callRequest) ParseQuery(q interface{}) error {

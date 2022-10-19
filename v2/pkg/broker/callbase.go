@@ -76,8 +76,12 @@ func (c *callBase) ParseData(v interface{}) error {
 	case []byte:
 		return json.Unmarshal(c.Data.(json.RawMessage), v)
 	}
-	v = c.Data
-	return nil
+	marshaled, err := json.Marshal(c.Data)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(marshaled, v)
+	return err
 }
 
 func (c *callBase) FromJSON(data json.RawMessage, provider Provider, reply string) error {

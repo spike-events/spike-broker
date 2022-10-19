@@ -9,6 +9,11 @@ import (
 	"github.com/spike-events/spike-broker/v2/pkg/service"
 )
 
+type LocalPayload struct {
+	Attr1 int    `json:"attr1"`
+	Attr2 string `json:"attr2"`
+}
+
 type ServiceTest struct {
 	key    uuid.UUID
 	ctx    context.Context
@@ -54,6 +59,10 @@ func (s *ServiceTest) Handlers() []broker.Subscription {
 		{
 			Resource: ServiceTestRid().CallV1Forbidden(),
 			Handler:  s.callV1Forbidden,
+		},
+		{
+			Resource: ServiceTestRid().CallWithObjPayload(),
+			Handler:  s.callWithObjPayload,
 		},
 	}
 }
@@ -120,6 +129,16 @@ func (s *ServiceTest) callV1(c broker.Call) {
 
 func (s *ServiceTest) callV1Forbidden(c broker.Call) {
 
+}
+
+func (s *ServiceTest) callWithObjPayload(c broker.Call) {
+	var payload LocalPayload
+	err := c.ParseData(&payload)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	c.OK(&payload)
 }
 
 func NewServiceTest(broker broker.Provider, logger service.Logger) service.Service {

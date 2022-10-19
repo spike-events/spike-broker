@@ -38,5 +38,9 @@ func (s *serviceTestRid) CallV1() rids.Pattern {
 }
 
 func (s *serviceTestRid) CallV1Forbidden() rids.Pattern {
-	return s.NewMethod("Call s Spike V1 service method that returns error", "callV1.forbidden").Get()
+	return s.NewMethod("Call a Spike V1 service method that returns error", "callV1.forbidden").Get()
+}
+
+func (s *serviceTestRid) CallWithObjPayload() rids.Pattern {
+	return s.NewMethod("Call passing a map expecting to turn into an object", "payload.object").Post()
 }
