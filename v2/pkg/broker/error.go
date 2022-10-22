@@ -53,6 +53,7 @@ var (
 	ErrorInternalServerError      Error = &errorMessage{Message{http.StatusInternalServerError, nil}, "internal error"}
 	ErrorAccessDenied             Error = &errorMessage{Message{http.StatusForbidden, nil}, "access denied"}
 	ErrorTimeout                  Error = &errorMessage{Message{http.StatusRequestTimeout, nil}, "timeout"}
+	ErrorServiceUnavailable       Error = &errorMessage{Message{http.StatusServiceUnavailable, nil}, "service unavailable"}
 )
 
 func InternalError(err error) Error {

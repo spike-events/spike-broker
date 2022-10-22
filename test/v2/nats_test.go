@@ -123,6 +123,11 @@ func (s *NatsTest) TestInternalServiceCall() {
 	s.Require().NotEqual(id, uuid.Nil, "invalid id received")
 }
 
+func (s *NatsTest) TestCallInvalidRoute() {
+	err := Request(ServiceTestRid().NoHandler(), nil, nil, "invalid-token")
+	s.Require().NotNil(err, "should have failed")
+}
+
 func TestNats(t *testing.T) {
 	suite.Run(t, new(NatsTest))
 }

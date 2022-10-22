@@ -44,3 +44,7 @@ func (s *serviceTestRid) CallV1Forbidden() rids.Pattern {
 func (s *serviceTestRid) CallWithObjPayload() rids.Pattern {
 	return s.NewMethod("Call passing a map expecting to turn into an object", "payload.object").Post()
 }
+
+func (s *serviceTestRid) NoHandler() rids.Pattern {
+	return s.NewMethod("Route without handler to test 503 errors on NATS", "invalid").Get()
+}
