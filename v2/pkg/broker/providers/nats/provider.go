@@ -42,7 +42,7 @@ func init() {
 
 type Provider struct {
 	config    Config
-	handler   func(p rids.Pattern, payload []byte, replyEndpoint string)
+	handler   map[string]broker.ServiceHandler
 	debug     bool
 	localNats *server.Server
 }
@@ -79,7 +79,8 @@ func (s *Provider) newNatsBus() (*nats.Conn, error) {
 
 func NewNatsProvider(config Config) broker.Provider {
 	natsConn := &Provider{
-		config: config,
+		config:  config,
+		handler: make(map[string]broker.ServiceHandler),
 	}
 
 	m.Lock()
@@ -110,8 +111,8 @@ func NewNatsProvider(config Config) broker.Provider {
 	return natsConn
 }
 
-func (s *Provider) SetHandler(handler func(p rids.Pattern, payload []byte, replyEndpoint string)) {
-	s.handler = handler
+func (s *Provider) SetHandler(service string, handler broker.ServiceHandler) {
+	s.handler[service] = handler
 }
 
 func (s *Provider) Drain() {
@@ -165,7 +166,7 @@ func (s *Provider) subscribe(pattern rids.Pattern) (string, string, chan *nats.M
 	go func() {
 		p := pattern
 		for msg := range msgs {
-			go s.handler(p, msg.Data, msg.Reply)
+			go s.handler[pattern.Service()](p, msg.Data, msg.Reply)
 		}
 		s.printDebug("nats: channel closed on endpoint %s", p.EndpointName())
 	}()

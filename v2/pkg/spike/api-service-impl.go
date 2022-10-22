@@ -38,7 +38,7 @@ func (s *serviceImpl) StartService() error {
 		return fmt.Errorf("API not initialized")
 	}
 
-	s.broker.SetHandler(func(p rids.Pattern, payload []byte, replyEndpoint string) {
+	s.broker.SetHandler(s.opts.Service.Rid().Name(), func(p rids.Pattern, payload []byte, replyEndpoint string) {
 		call, err := broker.NewCallFromJSON(payload, p, replyEndpoint)
 		if err == nil {
 			call.SetProvider(s.broker)
