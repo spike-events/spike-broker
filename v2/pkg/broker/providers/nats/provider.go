@@ -374,10 +374,10 @@ func (s *Provider) processResponse(subject, inbox string, c chan *nats.Msg, t ti
 
 			if respStr == "" {
 				// TODO: Map all possible problematic headers
-				if msg.Header.Get("Status") == "503" {
-					return nil, broker.ErrorServiceUnavailable
-				}
-				return nil, broker.ErrorNotFound
+				//if msg.Header.Get("Status") == "503" {
+				//	return nil, broker.ErrorServiceUnavailable
+				//}
+				return nil, broker.ErrorServiceUnavailable
 			}
 			return msg.Data, nil
 

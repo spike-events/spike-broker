@@ -67,7 +67,7 @@ func (t *testProvider) request(mp map[string]RequestMock, p rids.Pattern, payloa
 	if f, ok := mp[p.EndpointName()]; ok {
 		return f(p, payload, rs, token...)
 	}
-	return broker.ErrorNotFound
+	return broker.ErrorServiceUnavailable
 }
 
 func (t *testProvider) requestRaw(
@@ -79,7 +79,7 @@ func (t *testProvider) requestRaw(
 	if f, ok := mp[subject]; ok {
 		return f(data, overrideTimeout...)
 	}
-	return nil, broker.ErrorNotFound
+	return nil, broker.ErrorServiceUnavailable
 }
 
 func (t *testProvider) Request(p rids.Pattern, payload interface{}, rs interface{}, token ...string) broker.Error {
