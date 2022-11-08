@@ -75,15 +75,16 @@ func (u *UnitTest) SetupSuite() {
 }
 
 func (u *UnitTest) TestFailReplyNoToken() {
-	t := spike.APITestRequestOrPublish{
+	t := spike.APITestAccess{
 		Pattern: ServiceTestRid().TestReply(u.id),
-		AccessErr: func(value interface{}) {
+		Err: func(index int, value interface{}) {
+			u.Require().Equal(0, index, "invalid error index")
 			err, valid := value.(broker.Error)
 			u.Require().True(valid, "invalid error")
 			u.Require().ErrorIs(broker.ErrorAccessDenied, err)
 		},
 	}
-	err := u.svc.TestRequestOrPublish(t)
+	err := u.svc.TestAccess(t)
 	u.Require().NotNil(err)
 }
 
@@ -97,18 +98,12 @@ func (u *UnitTest) TestFromMock() {
 
 	t := spike.APITestRequestOrPublish{
 		Pattern: ServiceTestRid().FromMock(),
-		RequestOk: func(value ...interface{}) {
+		Ok: func(value ...interface{}) {
 			u.Require().NotEmpty(value, "no value provider")
 			_, valid := value[0].(*uuid.UUID)
 			u.Require().True(valid, "value is not uuid")
 		},
-		AccessOk: func(value ...interface{}) {
-			u.Require().Empty(value)
-		},
-		RequestErr: func(value interface{}) {
-			u.Require().Nil(value)
-		},
-		AccessErr: func(value interface{}) {
+		Err: func(value interface{}) {
 			u.Require().Nil(value)
 		},
 		Mocks: testProvider.Mocks{
@@ -132,19 +127,17 @@ func (u *UnitTest) TestWithObjectPayload() {
 		Repository: nil,
 		Payload:    obj,
 		Token:      "",
-		RequestOk: func(i ...interface{}) {
+		Ok: func(i ...interface{}) {
 			u.Require().NotEmpty(i, "should have a return value")
 			payload, valid := i[0].(*LocalPayload)
 			u.Require().True(valid, "should have been a LocalPayload")
 			u.Require().Equal(payload.Attr1, 10)
 			u.Require().Equal(payload.Attr2, "Ok")
 		},
-		AccessOk: nil,
-		RequestErr: func(i interface{}) {
+		Err: func(i interface{}) {
 			u.FailNow("Should have succeeded")
 		},
-		AccessErr: nil,
-		Mocks:     testProvider.Mocks{},
+		Mocks: testProvider.Mocks{},
 	}
 	err := u.svc.TestRequestOrPublish(t)
 	u.Require().Nil(err, "Should have returned success")

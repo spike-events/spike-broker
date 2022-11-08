@@ -11,11 +11,15 @@ type accessRequest struct {
 
 func (a *accessRequest) AccessDenied() {
 	a.result = broker.ErrorAccessDenied
-	a.errF(a.result)
+	if a.errF != nil {
+		a.errF(a.result)
+	}
 }
 
 func (a *accessRequest) AccessGranted() {
-	a.okF()
+	if a.okF != nil {
+		a.okF()
+	}
 }
 
 func NewAccess(p rids.Pattern, payload interface{}, token string, okF func(...interface{}), errF func(interface{})) broker.Access {

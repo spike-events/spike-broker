@@ -110,18 +110,24 @@ func (c *callRequest) File(f *dataurl.DataURL) {
 
 func (c *callRequest) OK(result ...interface{}) {
 	c.result = nil
-	c.okF(result...)
+	if c.okF != nil {
+		c.okF(result...)
+	}
 }
 
 func (c *callRequest) InternalError(err error) {
 	c.result = broker.InternalError(err)
-	c.errF(c.result)
+	if c.errF != nil {
+		c.errF(c.result)
+	}
 }
 
 func (c *callRequest) Error(err error, msg ...string) {
 	if brokerErr, ok := err.(broker.Error); ok {
 		c.result = brokerErr
-		c.errF(c.result)
+		if c.errF != nil {
+			c.errF(c.result)
+		}
 		return
 	}
 	c.InternalError(err)
@@ -129,7 +135,9 @@ func (c *callRequest) Error(err error, msg ...string) {
 
 func (c *callRequest) NotFound() {
 	c.result = broker.ErrorNotFound
-	c.errF(c.result)
+	if c.errF != nil {
+		c.errF(c.result)
+	}
 }
 
 func (c *callRequest) SetReply(reply string) {

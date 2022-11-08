@@ -11,15 +11,24 @@ type APITestRequestOrPublish struct {
 	Repository interface{}
 	Payload    interface{}
 	Token      string
-	RequestOk  func(...interface{})
-	AccessOk   func(...interface{})
-	RequestErr func(interface{})
-	AccessErr  func(interface{})
 	Mocks      testProvider.Mocks
+	Ok         func(...interface{})
+	Err        func(interface{})
+}
+
+type APITestAccess struct {
+	Pattern    rids.Pattern
+	Repository interface{}
+	Payload    interface{}
+	Token      string
+	Mocks      testProvider.Mocks
+	Ok         func()
+	Err        func(int, interface{})
 }
 
 type APITestService interface {
 	APIService
+	TestAccess(params APITestAccess) broker.Error
 	TestRequestOrPublish(params APITestRequestOrPublish) broker.Error
 }
 
