@@ -121,7 +121,7 @@ func (c *call) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	c.Data = callInner.Data.([]byte)
+	c.Data = []byte(callInner.Data.(string))
 	c.ReplyStr = callInner.ReplyStr
 	c.EndpointPattern = pattern
 	c.Token = callInner.Token
