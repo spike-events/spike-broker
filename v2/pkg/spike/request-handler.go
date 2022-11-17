@@ -39,7 +39,7 @@ func handleRequest(p rids.Pattern, msg broker.Call, access broker.Access, opts O
 	}
 
 	// Authenticate and Authorize
-	if !p.Public() {
+	if p.Method() != "INTERNAL" && !p.Public() {
 		// Test Token Authentication
 		var valid bool
 		var token string
