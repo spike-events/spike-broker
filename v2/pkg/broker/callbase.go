@@ -74,7 +74,7 @@ func (c *callBase) PathParam(key string) string {
 func (c *callBase) ParseData(v interface{}) error {
 	switch c.Data.(type) {
 	case []byte:
-		return json.Unmarshal(c.Data.(json.RawMessage), v)
+		return json.Unmarshal(c.Data.([]byte), v)
 	}
 	marshaled, err := json.Marshal(c.Data)
 	if err != nil {

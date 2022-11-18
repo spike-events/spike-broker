@@ -43,9 +43,9 @@ func NewCall(p rids.Pattern, data interface{}) Call {
 	var payload []byte
 	var err error
 	switch data.(type) {
+	case nil:
 	case []byte:
 		payload = data.([]byte)
-	case nil:
 	default:
 		data = spikeUtils.PointerFromInterface(data)
 		payload, err = json.Marshal(data)
