@@ -44,6 +44,7 @@ func NewCall(p rids.Pattern, data interface{}) Call {
 	var err error
 	switch data.(type) {
 	case []byte:
+		payload = data.([]byte)
 	case nil:
 	default:
 		data = spikeUtils.PointerFromInterface(data)
@@ -160,6 +161,10 @@ func (c *call) ToJSON() json.RawMessage {
 		TokenV1:    c.Token,
 		QueryV1:    queryStr,
 		APIVersion: c.APIVersion,
+	}
+	switch toSend.Data.(type) {
+	case []byte:
+		toSend.Data = string(toSend.Data.([]byte))
 	}
 	data, err := json.Marshal(toSend)
 	if err != nil {

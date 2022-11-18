@@ -118,7 +118,7 @@ func (s *NatsTest) TestReplyWithToken() {
 
 func (s *NatsTest) TestInternalServiceCall() {
 	var id uuid.UUID
-	err := Request(ServiceTestRid().FromMock(), nil, &id, "token-string")
+	err := Request(ServiceTestRid().FromMock(), s, &id, "token-string")
 	s.Require().ErrorIs(err, nil, "error response")
 	s.Require().NotEqual(id, uuid.Nil, "invalid id received")
 }
@@ -126,6 +126,17 @@ func (s *NatsTest) TestInternalServiceCall() {
 func (s *NatsTest) TestCallInvalidRoute() {
 	err := Request(ServiceTestRid().NoHandler(), nil, nil, "invalid-token")
 	s.Require().NotNil(err, "should have failed")
+}
+
+func (s *NatsTest) TestReplyWithTokenAndPayload() {
+	payload := map[string]interface{}{
+		"attr1": 10,
+		"attr2": "Ok",
+	}
+	var id uuid.UUID
+	err := Request(ServiceTestRid().TestReply(s.id), payload, &id, "token-string")
+	s.Require().ErrorIs(err, nil, "error response")
+	s.Require().Equal(s.id, id, "invalid response")
 }
 
 func TestNats(t *testing.T) {

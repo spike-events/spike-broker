@@ -67,7 +67,7 @@ func (c *callRequest) PathParam(key string) string {
 func (c *callRequest) ParseData(v interface{}) error {
 	switch c.payload.(type) {
 	case []byte:
-		return json.Unmarshal(c.payload.(json.RawMessage), v)
+		return json.Unmarshal(c.payload.([]byte), v)
 	}
 	marshaled, err := json.Marshal(c.payload)
 	if err != nil {

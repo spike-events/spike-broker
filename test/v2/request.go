@@ -1,11 +1,11 @@
 package v2
 
 import (
+	"bytes"
 	"encoding/json"
 	"io/ioutil"
 	"math"
 	"net/http"
-	"strings"
 
 	"github.com/spike-events/spike-broker/v2/pkg/broker"
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
@@ -17,7 +17,7 @@ func Request(p rids.Pattern, param interface{}, rs interface{}, token ...string)
 	endpoint := "http://localhost:3333" + p.EndpointREST()
 
 	data, _ := json.Marshal(param)
-	payload := strings.NewReader(string(data))
+	payload := bytes.NewReader(data)
 	req, err := http.NewRequest(p.Method(), endpoint, payload)
 	if err != nil {
 		return broker.InternalError(err)

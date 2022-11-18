@@ -2,6 +2,7 @@ package v2
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"os"
 	"testing"
@@ -121,11 +122,11 @@ func (u *UnitTest) TestWithObjectPayload() {
 		"attr1": 10,
 		"attr2": "Ok",
 	}
-
+	marshaled, _ := json.Marshal(obj)
 	t := spike.APITestRequestOrPublish{
 		Pattern:    ServiceTestRid().CallWithObjPayload(),
 		Repository: nil,
-		Payload:    obj,
+		Payload:    marshaled,
 		Token:      "",
 		Ok: func(i ...interface{}) {
 			u.Require().NotEmpty(i, "should have a return value")

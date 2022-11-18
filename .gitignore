@@ -20,3 +20,5 @@ __debug_bin
 /test/gorm.db
 /gorm.db
 /gorm.db-journal
+/test/v2/gorm.db
+/test/v2/gorm.db-journal
