@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/hetiansu5/urlquery"
+	spike_utils "github.com/spike-events/spike-broker/v2/pkg/spike-utils"
 )
 
 // Pattern interface for building up endpoints
@@ -29,6 +30,21 @@ func newPattern(m *method) Pattern {
 		MethodValue:      m,
 		QueryParamsValue: nil,
 	}
+}
+
+func NewPatternFromV1(endpoint string, params map[string]string) (Pattern, error) {
+	epParts := strings.Split(endpoint, ".")
+	if len(epParts) < 2 {
+		return nil, fmt.Errorf("pattern: invalid endpoint")
+	}
+	serviceName := epParts[0]
+	path := strings.Join(epParts[1:], ".")
+	paramsV2 := make([]fmt.Stringer, 0, len(params))
+	for i := range params {
+		paramsV2 = append(paramsV2, spike_utils.Stringer(params[i]))
+	}
+	m := newMethod(serviceName, "", "", "", path, 1, paramsV2...)
+	return newPattern(m), nil
 }
 
 func UnmarshalPattern(data json.RawMessage) (Pattern, error) {

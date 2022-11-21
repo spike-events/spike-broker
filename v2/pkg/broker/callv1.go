@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/spike-events/spike-broker/pkg/service/request"
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
 	spikeUtils "github.com/spike-events/spike-broker/v2/pkg/spike-utils"
 )
@@ -45,6 +46,21 @@ func NewCallV1FromJSON(data []byte, p rids.Pattern, reply string) (Call, error) 
 		},
 	}
 	v1.EndpointPattern.SetParams(params)
+	return &v1, nil
+}
+
+func NewCallFromV1(r *request.CallRequest) (Call, error) {
+	p, err := rids.NewPatternFromV1(r.Endpoint, r.Params)
+	if err != nil {
+		return nil, err
+	}
+	v1 := callV1{
+		callBase: callBase{
+			Data:            r.Data,
+			EndpointPattern: p,
+			Token:           r.Token,
+		},
+	}
 	return &v1, nil
 }
 
