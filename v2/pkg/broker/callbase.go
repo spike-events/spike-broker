@@ -75,6 +75,8 @@ func (c *callBase) ParseData(v interface{}) error {
 	switch c.Data.(type) {
 	case []byte:
 		return json.Unmarshal(c.Data.([]byte), v)
+	case string:
+		return json.Unmarshal([]byte(c.Data.(string)), v)
 	}
 	marshaled, err := json.Marshal(c.Data)
 	if err != nil {
