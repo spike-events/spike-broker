@@ -35,7 +35,7 @@ func newPattern(m *method) Pattern {
 func NewPatternFromV1(endpoint string, params map[string]string) (Pattern, error) {
 	epParts := strings.Split(endpoint, ".")
 	if len(epParts) < 2 {
-		return nil, fmt.Errorf("pattern: invalid endpoint")
+		return nil, fmt.Errorf("pattern: invalid endpoint: %s", endpoint)
 	}
 	serviceName := epParts[0]
 	path := strings.Join(epParts[1:], ".")
