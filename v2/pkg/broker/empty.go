@@ -22,8 +22,8 @@ func (e *empty) GetError() Error {
 	return nil
 }
 
-func (e *empty) RawData() interface{} {
-	return ""
+func (e *empty) RawData() json.RawMessage {
+	return json.RawMessage{}
 }
 
 func (e *empty) Reply() string {

@@ -15,7 +15,7 @@ type CallHandler func(c Call)
 
 type Call interface {
 	RawToken() string
-	RawData() interface{}
+	RawData() json.RawMessage
 	Reply() string
 	Provider() Provider
 	Endpoint() rids.Pattern
@@ -105,7 +105,7 @@ type call struct {
 
 func (c *call) UnmarshalJSON(data []byte) error {
 	type callInnerType struct {
-		Data            interface{}     `json:"data"`
+		Data            json.RawMessage `json:"data"`
 		ReplyStr        string          `json:"reply"`
 		EndpointPattern json.RawMessage `json:"endpointPattern"`
 		Token           string          `json:"token"`
@@ -162,10 +162,10 @@ func (c *call) ToJSON() json.RawMessage {
 		QueryV1:    queryStr,
 		APIVersion: c.APIVersion,
 	}
-	switch toSend.Data.(type) {
-	case []byte:
-		toSend.Data = string(toSend.Data.([]byte))
-	}
+	//switch toSend.Data.(type) {
+	//case []byte:
+	//	toSend.Data = string(toSend.Data.([]byte))
+	//}
 	data, err := json.Marshal(toSend)
 	if err != nil {
 		panic(err)

@@ -13,10 +13,10 @@ import (
 )
 
 type callBase struct {
-	Data            interface{}  `json:"Data"` // As V1 uses upper case on JSON notation we keep data this way
-	ReplyStr        string       `json:"reply"`
-	EndpointPattern rids.Pattern `json:"endpointPattern"`
-	Token           string       `json:"token"`
+	Data            json.RawMessage `json:"Data"` // As V1 uses upper case on JSON notation we keep data this way
+	ReplyStr        string          `json:"reply"`
+	EndpointPattern rids.Pattern    `json:"endpointPattern"`
+	Token           string          `json:"token"`
 	provider        Provider
 	err             Error
 }
@@ -33,7 +33,7 @@ func (c *callBase) Reply() string {
 	return c.ReplyStr
 }
 
-func (c *callBase) RawData() interface{} {
+func (c *callBase) RawData() json.RawMessage {
 	return c.Data
 }
 
@@ -72,18 +72,7 @@ func (c *callBase) PathParam(key string) string {
 }
 
 func (c *callBase) ParseData(v interface{}) error {
-	switch c.Data.(type) {
-	case []byte:
-		return json.Unmarshal(c.Data.([]byte), v)
-	case string:
-		return json.Unmarshal([]byte(c.Data.(string)), v)
-	}
-	marshaled, err := json.Marshal(c.Data)
-	if err != nil {
-		return err
-	}
-	err = json.Unmarshal(marshaled, v)
-	return err
+	return json.Unmarshal([]byte(c.Data), v)
 }
 
 func (c *callBase) FromJSON(data json.RawMessage, provider Provider, reply string) error {

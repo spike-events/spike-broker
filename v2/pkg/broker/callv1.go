@@ -11,7 +11,7 @@ import (
 )
 
 type callV1 struct {
-	callBase
+	call
 }
 
 type v1Message struct {
@@ -22,7 +22,7 @@ type v1Message struct {
 func NewCallV1FromJSON(data []byte, p rids.Pattern, reply string) (Call, error) {
 	type fromV1Data struct {
 		Params map[string]string `json:"Params"`
-		Data   []byte            `json:"Data"`
+		Data   json.RawMessage   `json:"Data"`
 		Token  string            `json:"Token"`
 		Query  string            `json:"Query"`
 	}
@@ -38,11 +38,14 @@ func NewCallV1FromJSON(data []byte, p rids.Pattern, reply string) (Call, error) 
 	}
 
 	v1 := callV1{
-		callBase: callBase{
-			Data:            v1Data.Data,
-			ReplyStr:        reply,
-			EndpointPattern: p.Clone(),
-			Token:           v1Data.Token,
+		call: call{
+			callBase: callBase{
+				Data:            v1Data.Data,
+				ReplyStr:        reply,
+				EndpointPattern: p.Clone(),
+				Token:           v1Data.Token,
+			},
+			APIVersion: 1,
 		},
 	}
 	v1.EndpointPattern.SetParams(params)
@@ -55,10 +58,13 @@ func NewCallFromV1(r *request.CallRequest) (Call, error) {
 		return nil, err
 	}
 	v1 := callV1{
-		callBase: callBase{
-			Data:            r.Data,
-			EndpointPattern: p,
-			Token:           r.Token,
+		call: call{
+			callBase: callBase{
+				Data:            r.Data,
+				EndpointPattern: p,
+				Token:           r.Token,
+			},
+			APIVersion: 2,
 		},
 	}
 	return &v1, nil

@@ -14,7 +14,7 @@ type callRequest struct {
 	p       rids.Pattern
 	result  broker.Error
 	token   string
-	payload interface{}
+	payload json.RawMessage
 	okF     func(...interface{})
 	errF    func(interface{})
 }
@@ -27,7 +27,7 @@ func (c *callRequest) RawToken() string {
 	return c.token
 }
 
-func (c *callRequest) RawData() interface{} {
+func (c *callRequest) RawData() json.RawMessage {
 	return c.payload
 }
 
@@ -65,16 +65,7 @@ func (c *callRequest) PathParam(key string) string {
 }
 
 func (c *callRequest) ParseData(v interface{}) error {
-	switch c.payload.(type) {
-	case []byte:
-		return json.Unmarshal(c.payload.([]byte), v)
-	}
-	marshaled, err := json.Marshal(c.payload)
-	if err != nil {
-		return err
-	}
-	err = json.Unmarshal(marshaled, v)
-	return err
+	return json.Unmarshal([]byte(c.payload), v)
 }
 
 func (c *callRequest) ParseQuery(q interface{}) error {
@@ -166,10 +157,11 @@ func NewCall(p rids.Pattern, payload interface{}, token string, okF func(...inte
 	if errF == nil {
 		errF = func(interface{}) {}
 	}
+	data, _ := json.Marshal(payload)
 	return &callRequest{
 		p:       p,
 		token:   token,
-		payload: payload,
+		payload: data,
 		okF:     okF,
 		errF:    errF,
 	}
