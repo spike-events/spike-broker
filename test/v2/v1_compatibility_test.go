@@ -94,7 +94,7 @@ func (v1 *V1Test) SetupSuite() {
 		NewV1Service,
 	}
 
-	if err = os.Remove("gorm.db"); err != nil {
+	if err = os.RemoveAll("gorm.db"); err != nil {
 		log.Printf("could not remove gorm.db old database: %s", err)
 	}
 	db, err := gorm.Open(sqlite.Open("gorm.db"), &gorm.Config{})
@@ -128,7 +128,7 @@ func (v1 *V1Test) TestV1SendErrorToV2() {
 }
 
 func (v1 *V1Test) TearDownSuite() {
-	if err := os.Remove("gorm.db"); err != nil {
+	if err := os.RemoveAll("gorm.db"); err != nil {
 		log.Printf("could not remove gorm.db old database: %s", err)
 	}
 	v1.broker.Close()
