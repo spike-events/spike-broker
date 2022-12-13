@@ -23,7 +23,7 @@ func NewCallV1FromJSON(data []byte, p rids.Pattern, reply string) (Call, error) 
 	type fromV1Data struct {
 		Params map[string]string `json:"Params"`
 		Data   json.RawMessage   `json:"Data"`
-		Token  string            `json:"Token"`
+		Token  json.RawMessage   `json:"Token"`
 		Query  string            `json:"Query"`
 	}
 	var v1Data fromV1Data
@@ -62,7 +62,7 @@ func NewCallFromV1(r *request.CallRequest) (Call, error) {
 			callBase: callBase{
 				Data:            r.Data,
 				EndpointPattern: p,
-				Token:           r.Token,
+				Token:           json.RawMessage(r.Token),
 			},
 			APIVersion: 2,
 		},

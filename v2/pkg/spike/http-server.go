@@ -205,7 +205,11 @@ func (h *httpServer) httpHandler(p rids.Pattern, w http.ResponseWriter, r *http.
 		return
 	}
 
-	token, _ := spikeutils.GetBearer(r)
+	var token json.RawMessage
+	tokenStr, _ := spikeutils.GetBearer(r)
+	if len(tokenStr) > 0 {
+		token = json.RawMessage(tokenStr)
+	}
 	params := make(map[string]fmt.Stringer)
 	for param := range p.Params() {
 		value := chi.URLParam(r, param)

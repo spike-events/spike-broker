@@ -14,7 +14,7 @@ import (
 type CallHandler func(c Call)
 
 type Call interface {
-	RawToken() string
+	RawToken() json.RawMessage
 	RawData() json.RawMessage
 	Reply() string
 	Provider() Provider
@@ -34,7 +34,7 @@ type Call interface {
 	GetError() Error
 	Error(err error, msg ...string)
 
-	SetToken(token string)
+	SetToken(token json.RawMessage)
 	SetProvider(provider Provider)
 }
 
@@ -89,7 +89,7 @@ func NewCallFromJSON(callJSON json.RawMessage, p rids.Pattern, reply string) (Ca
 	return &c, nil
 }
 
-func NewHTTPCall(p rids.Pattern, token string, data interface{}, params map[string]fmt.Stringer, query interface{}) Call {
+func NewHTTPCall(p rids.Pattern, token json.RawMessage, data interface{}, params map[string]fmt.Stringer, query interface{}) Call {
 	c := NewCall(p, data).(*call)
 	c.EndpointPattern.SetParams(params)
 	c.EndpointPattern.Query(query)
@@ -108,7 +108,7 @@ func (c *call) UnmarshalJSON(data []byte) error {
 		Data            json.RawMessage `json:"data"`
 		ReplyStr        string          `json:"reply"`
 		EndpointPattern json.RawMessage `json:"endpointPattern"`
-		Token           string          `json:"token"`
+		Token           json.RawMessage `json:"token"`
 		APIVersion      int             `json:"apiVersion"`
 	}
 	var callInner callInnerType
@@ -133,7 +133,7 @@ func (c *call) ToJSON() json.RawMessage {
 	type callV1Compatible struct {
 		callBase
 		Params     map[string]string `json:"Params"`
-		TokenV1    string            `json:"Token"`
+		TokenV1    json.RawMessage   `json:"Token"`
 		QueryV1    string            `json:"Query"`
 		APIVersion int               `json:"apiVersion"`
 	}

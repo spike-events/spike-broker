@@ -42,14 +42,14 @@ func (e *empty) SetEndpoint(p rids.Pattern) {
 	e.endpoint = p
 }
 
-func (e *empty) SetToken(token string) {}
+func (e *empty) SetToken(token json.RawMessage) {}
 
 func (e *empty) SetProvider(provider Provider) {
 	e.provider = provider
 }
 
-func (e *empty) RawToken() string {
-	return ""
+func (e *empty) RawToken() json.RawMessage {
+	return json.RawMessage{}
 }
 
 func (e *empty) ParseQuery(q interface{}) error {

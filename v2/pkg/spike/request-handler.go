@@ -1,6 +1,7 @@
 package spike
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/spike-events/spike-broker/v2/pkg/broker"
@@ -42,7 +43,7 @@ func handleRequest(p rids.Pattern, msg broker.Call, access broker.Access, opts O
 	if p.Method() != "INTERNAL" && !p.Public() {
 		// Test Token Authentication
 		var valid bool
-		var token string
+		var token json.RawMessage
 		if token, valid = opts.Authenticator.ValidateToken(msg.RawToken()); !valid {
 			msg.Error(broker.ErrorStatusUnauthorized)
 			return

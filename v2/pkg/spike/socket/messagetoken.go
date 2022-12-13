@@ -19,7 +19,7 @@ func (t *WSMessageToken) Handle(ws WSConnection) broker.Error {
 		return broker.ErrorStatusUnauthorized
 	}
 
-	publish := ws.GetSessionToken() == ""
+	publish := string(ws.GetSessionToken()) == ""
 	ws.SetSessionToken(token)
 	ws.SetSessionID(t.ID)
 	t.Token = token

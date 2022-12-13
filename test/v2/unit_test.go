@@ -2,6 +2,7 @@ package v2
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"os"
 	"testing"
@@ -41,7 +42,7 @@ func (u *UnitTest) SetupSuite() {
 	logger := log.New(os.Stderr, "test", log.LstdFlags)
 
 	// Test Authenticator (validates token)
-	authenticator := spike.NewTestAuthenticator(func(s string) (string, bool) {
+	authenticator := spike.NewTestAuthenticator(func(s json.RawMessage) (json.RawMessage, bool) {
 		return s, true
 	})
 
@@ -89,7 +90,7 @@ func (u *UnitTest) TestFailReplyNoToken() {
 }
 
 func (u *UnitTest) TestFromMock() {
-	testReplyMock := func(p rids.Pattern, payload interface{}, res interface{}, token ...string) broker.Error {
+	testReplyMock := func(p rids.Pattern, payload interface{}, res interface{}, token ...json.RawMessage) broker.Error {
 		id, converted := payload.(uuid.UUID)
 		u.Require().True(converted)
 		*res.(*uuid.UUID) = id
@@ -125,7 +126,7 @@ func (u *UnitTest) TestWithObjectPayload() {
 		Pattern:    ServiceTestRid().CallWithObjPayload(),
 		Repository: nil,
 		Payload:    obj,
-		Token:      "",
+		Token:      nil,
 		Ok: func(i ...interface{}) {
 			u.Require().NotEmpty(i, "should have a return value")
 			payload, valid := i[0].(*LocalPayload)

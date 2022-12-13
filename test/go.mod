@@ -9,7 +9,7 @@ replace github.com/spike-events/spike-broker/v2 => ../v2/
 require (
 	github.com/gofrs/uuid v4.2.0+incompatible
 	github.com/nats-io/nats.go v1.15.0
-	github.com/spike-events/spike-broker v0.2.1
+	github.com/spike-events/spike-broker v0.2.9
 	github.com/spike-events/spike-broker/v2 v2.0.5
 	github.com/stretchr/testify v1.7.1
 	gorm.io/driver/sqlite v1.3.2

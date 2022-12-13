@@ -25,7 +25,7 @@ func Request(p rids.Pattern, param interface{}, rs interface{}, token ...string)
 	}
 	req.Header.Add("Content-Type", "application/json")
 	if len(token) > 0 {
-		req.Header.Add("Authorization", "Bearer "+token[0])
+		req.Header.Add("Authorization", "Bearer \""+token[0]+"\"")
 	}
 
 	res, err := client.Do(req)

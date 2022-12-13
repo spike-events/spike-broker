@@ -2,6 +2,7 @@ package v2
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/gofrs/uuid"
 	"github.com/spike-events/spike-broker/v2/pkg/broker"
@@ -88,7 +89,7 @@ func (s *ServiceTest) Logger() service.Logger {
 }
 
 func (s *ServiceTest) validateReply(a broker.Access) {
-	if a.RawToken() == "" {
+	if len(a.RawToken()) == 0 {
 		a.AccessDenied()
 		return
 	}
@@ -119,7 +120,7 @@ func (s *ServiceTest) fromMock(c broker.Call) {
 func (s *ServiceTest) callV1(c broker.Call) {
 	id, _ := uuid.NewV4()
 	var rID uuid.UUID
-	err := s.Broker().Request(V2RidForV1Service().AnswerV2Service(id), &id, &rID, "token-string")
+	err := s.Broker().Request(V2RidForV1Service().AnswerV2Service(id), &id, &rID, json.RawMessage("\"token-string\""))
 	if err != nil {
 		c.Error(err)
 		return

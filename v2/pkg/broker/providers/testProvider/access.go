@@ -1,6 +1,8 @@
 package testProvider
 
 import (
+	"encoding/json"
+
 	"github.com/spike-events/spike-broker/v2/pkg/broker"
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
 )
@@ -22,7 +24,7 @@ func (a *accessRequest) AccessGranted() {
 	}
 }
 
-func NewAccess(p rids.Pattern, payload interface{}, token string, okF func(...interface{}), errF func(interface{})) broker.Access {
+func NewAccess(p rids.Pattern, payload interface{}, token json.RawMessage, okF func(...interface{}), errF func(interface{})) broker.Access {
 	c := NewCall(p, payload, token, okF, errF)
 	return &accessRequest{
 		callRequest: *c.(*callRequest),

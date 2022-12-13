@@ -13,7 +13,7 @@ import (
 type callRequest struct {
 	p       rids.Pattern
 	result  broker.Error
-	token   string
+	token   json.RawMessage
 	payload json.RawMessage
 	okF     func(...interface{})
 	errF    func(interface{})
@@ -23,7 +23,7 @@ func (c *callRequest) GetError() broker.Error {
 	return c.result
 }
 
-func (c *callRequest) RawToken() string {
+func (c *callRequest) RawToken() json.RawMessage {
 	return c.token
 }
 
@@ -136,7 +136,7 @@ func (c *callRequest) SetReply(reply string) {
 	panic("implement me")
 }
 
-func (c *callRequest) SetToken(token string) {
+func (c *callRequest) SetToken(token json.RawMessage) {
 	c.token = token
 }
 
@@ -150,7 +150,7 @@ func (c *callRequest) SetEndpoint(p rids.Pattern) {
 	panic("implement me")
 }
 
-func NewCall(p rids.Pattern, payload interface{}, token string, okF func(...interface{}), errF func(interface{})) broker.Call {
+func NewCall(p rids.Pattern, payload interface{}, token json.RawMessage, okF func(...interface{}), errF func(interface{})) broker.Call {
 	if okF == nil {
 		okF = func(...interface{}) {}
 	}

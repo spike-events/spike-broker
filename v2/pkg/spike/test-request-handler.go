@@ -1,6 +1,7 @@
 package spike
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/spike-events/spike-broker/v2/pkg/broker"
@@ -41,7 +42,7 @@ func handleAccessForTest(p rids.Pattern, msg broker.Call, access broker.Access, 
 	if !p.Public() {
 		// Test Token Authentication
 		var valid bool
-		var token string
+		var token json.RawMessage
 		if token, valid = opts.Authenticator.ValidateToken(access.RawToken()); !valid {
 			handleErr(-1, broker.ErrorStatusUnauthorized)
 			return

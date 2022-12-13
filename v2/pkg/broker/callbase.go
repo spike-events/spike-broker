@@ -16,7 +16,7 @@ type callBase struct {
 	Data            json.RawMessage `json:"Data"` // As V1 uses upper case on JSON notation we keep data this way
 	ReplyStr        string          `json:"reply"`
 	EndpointPattern rids.Pattern    `json:"endpointPattern"`
-	Token           string          `json:"token"`
+	Token           json.RawMessage `json:"token"`
 	provider        Provider
 	err             Error
 }
@@ -41,11 +41,11 @@ func (c *callBase) SetProvider(provider Provider) {
 	c.provider = provider
 }
 
-func (c *callBase) SetToken(token string) {
+func (c *callBase) SetToken(token json.RawMessage) {
 	c.Token = token
 }
 
-func (c *callBase) RawToken() string {
+func (c *callBase) RawToken() json.RawMessage {
 	return c.Token
 }
 
@@ -72,7 +72,7 @@ func (c *callBase) PathParam(key string) string {
 }
 
 func (c *callBase) ParseData(v interface{}) error {
-	return json.Unmarshal([]byte(c.Data), v)
+	return json.Unmarshal(c.Data, v)
 }
 
 func (c *callBase) FromJSON(data json.RawMessage, provider Provider, reply string) error {

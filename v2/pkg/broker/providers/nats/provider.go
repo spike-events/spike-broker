@@ -237,7 +237,7 @@ func (s *Provider) Monitor(monitoringGroup string, sub broker.Subscription) (fun
 }
 
 // Publish endpoint nats
-func (s *Provider) Publish(p rids.Pattern, payload interface{}, token ...string) error {
+func (s *Provider) Publish(p rids.Pattern, payload interface{}, token ...json.RawMessage) error {
 	call := broker.NewCall(p, payload)
 	if len(token) > 0 && len(token[0]) > 0 {
 		call.SetToken(token[0])
@@ -248,14 +248,14 @@ func (s *Provider) Publish(p rids.Pattern, payload interface{}, token ...string)
 }
 
 // Get endpoint nats
-func (s *Provider) Get(p rids.Pattern, rs interface{}, token ...string) broker.Error {
+func (s *Provider) Get(p rids.Pattern, rs interface{}, token ...json.RawMessage) broker.Error {
 	return s.Request(p, nil, rs, token...)
 }
 
 // Request endpoint nats FIXME: This is a general handler
-func (s *Provider) Request(p rids.Pattern, payload interface{}, rs interface{}, token ...string) broker.Error {
+func (s *Provider) Request(p rids.Pattern, payload interface{}, rs interface{}, token ...json.RawMessage) broker.Error {
 	call := broker.NewCall(p, payload)
-	if len(token) > 0 && token[0] != "" && len(token[0]) > 0 {
+	if len(token) > 0 && len(token[0]) > 0 {
 		call.SetToken(token[0])
 	}
 
