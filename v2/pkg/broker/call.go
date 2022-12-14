@@ -14,15 +14,13 @@ import (
 type CallHandler func(c Call)
 
 type Call interface {
-	RawToken() json.RawMessage
-	RawData() json.RawMessage
+	RawToken() []byte
+	RawData() []byte
 	Reply() string
 	Provider() Provider
 	Endpoint() rids.Pattern
 
-	ParseToken(t interface{})
 	PathParam(key string) string
-	ParseData(v interface{}) error
 	ParseQuery(q interface{}) error
 
 	ToJSON() json.RawMessage
@@ -34,7 +32,7 @@ type Call interface {
 	GetError() Error
 	Error(err error, msg ...string)
 
-	SetToken(token json.RawMessage)
+	SetToken(token []byte)
 	SetProvider(provider Provider)
 }
 
@@ -89,7 +87,7 @@ func NewCallFromJSON(callJSON json.RawMessage, p rids.Pattern, reply string) (Ca
 	return &c, nil
 }
 
-func NewHTTPCall(p rids.Pattern, token json.RawMessage, data interface{}, params map[string]fmt.Stringer, query interface{}) Call {
+func NewHTTPCall(p rids.Pattern, token []byte, data interface{}, params map[string]fmt.Stringer, query interface{}) Call {
 	c := NewCall(p, data).(*call)
 	c.EndpointPattern.SetParams(params)
 	c.EndpointPattern.Query(query)
@@ -105,10 +103,11 @@ type call struct {
 
 func (c *call) UnmarshalJSON(data []byte) error {
 	type callInnerType struct {
-		Data            json.RawMessage `json:"data"`
+		Data            RawData         `json:"data"`
 		ReplyStr        string          `json:"reply"`
 		EndpointPattern json.RawMessage `json:"endpointPattern"`
-		Token           json.RawMessage `json:"token"`
+		Token           RawData         `json:"token"`
+		TokenV1         string          `json:"Token"`
 		APIVersion      int             `json:"apiVersion"`
 	}
 	var callInner callInnerType
@@ -131,9 +130,18 @@ func (c *call) UnmarshalJSON(data []byte) error {
 
 func (c *call) ToJSON() json.RawMessage {
 	type callV1Compatible struct {
-		callBase
+		call
+		Data       json.RawMessage   `json:"Data"`
 		Params     map[string]string `json:"Params"`
-		TokenV1    json.RawMessage   `json:"Token"`
+		TokenV1    string            `json:"Token"`
+		QueryV1    string            `json:"Query"`
+		APIVersion int               `json:"apiVersion"`
+	}
+
+	type callV2Compatible struct {
+		call
+		Params     map[string]string `json:"Params"`
+		TokenV1    string            `json:"Token"`
 		QueryV1    string            `json:"Query"`
 		APIVersion int               `json:"apiVersion"`
 	}
@@ -155,17 +163,30 @@ func (c *call) ToJSON() json.RawMessage {
 		}
 	}
 
-	toSend := &callV1Compatible{
-		callBase:   c.callBase,
-		Params:     params,
-		TokenV1:    c.Token,
-		QueryV1:    queryStr,
-		APIVersion: c.APIVersion,
+	var toSend Call
+	if c.Endpoint().Version() == 1 {
+		toSend = &callV1Compatible{
+			call: call{
+				callBase: c.callBase,
+			},
+			Data:       c.RawData(),
+			Params:     params,
+			TokenV1:    string(c.Token),
+			QueryV1:    queryStr,
+			APIVersion: c.Endpoint().Version(),
+		}
+	} else {
+		toSend = &callV1Compatible{
+			call: call{
+				callBase: c.callBase,
+			},
+			Params:     params,
+			TokenV1:    string(c.Token),
+			QueryV1:    queryStr,
+			APIVersion: c.Endpoint().Version(),
+		}
 	}
-	//switch toSend.Data.(type) {
-	//case []byte:
-	//	toSend.Data = string(toSend.Data.([]byte))
-	//}
+
 	data, err := json.Marshal(toSend)
 	if err != nil {
 		panic(err)

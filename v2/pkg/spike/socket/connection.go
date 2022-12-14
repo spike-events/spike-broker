@@ -2,7 +2,6 @@ package socket
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/gofrs/uuid"
@@ -26,7 +25,7 @@ type Options struct {
 
 type WSConnection interface {
 	GetID() fmt.Stringer
-	GetToken() json.RawMessage
+	GetToken() broker.RawData
 	GetHandlers() []rids.Pattern
 	Context() context.Context
 	CancelContext()
@@ -34,8 +33,8 @@ type WSConnection interface {
 	Broker() broker.Provider
 	Authenticator() service.Authenticator
 	Authorizer() service.Authorizer
-	GetSessionToken() json.RawMessage
-	SetSessionToken(token json.RawMessage)
+	GetSessionToken() broker.RawData
+	SetSessionToken(token broker.RawData)
 	SetSessionID(id string)
 }
 
@@ -48,14 +47,14 @@ type wsConnection struct {
 	authenticator service.Authenticator
 	authorizer    service.Authorizer
 	handlers      []rids.Pattern
-	token         json.RawMessage
+	token         broker.RawData
 }
 
 func (ws *wsConnection) GetID() fmt.Stringer {
 	return spike_utils.Stringer(ws.ID)
 }
 
-func (ws *wsConnection) GetToken() json.RawMessage {
+func (ws *wsConnection) GetToken() broker.RawData {
 	return ws.token
 }
 
@@ -86,11 +85,11 @@ func (ws *wsConnection) Authorizer() service.Authorizer {
 	return ws.authorizer
 }
 
-func (ws *wsConnection) GetSessionToken() json.RawMessage {
+func (ws *wsConnection) GetSessionToken() broker.RawData {
 	return ws.token
 }
 
-func (ws *wsConnection) SetSessionToken(token json.RawMessage) {
+func (ws *wsConnection) SetSessionToken(token broker.RawData) {
 	ws.token = token
 }
 

@@ -9,7 +9,7 @@ import (
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
 )
 
-type RequestMock func(p rids.Pattern, payload interface{}, res interface{}, token ...json.RawMessage) broker.Error
+type RequestMock func(p rids.Pattern, payload interface{}, res interface{}, token ...[]byte) broker.Error
 type RequestRawMock func(payload json.RawMessage, overrideTimeout ...time.Duration) (json.RawMessage, broker.Error)
 
 type Mocks struct {
@@ -63,7 +63,7 @@ func NewTestProvider(ctx context.Context) Provider {
 
 /* Provider Inteface */
 
-func (t *testProvider) request(mp map[string]RequestMock, p rids.Pattern, payload interface{}, rs interface{}, token ...json.RawMessage) broker.Error {
+func (t *testProvider) request(mp map[string]RequestMock, p rids.Pattern, payload interface{}, rs interface{}, token ...[]byte) broker.Error {
 	if f, ok := mp[p.EndpointName()]; ok {
 		return f(p, payload, rs, token...)
 	}
@@ -82,7 +82,7 @@ func (t *testProvider) requestRaw(
 	return nil, broker.ErrorServiceUnavailable
 }
 
-func (t *testProvider) Request(p rids.Pattern, payload interface{}, rs interface{}, token ...json.RawMessage) broker.Error {
+func (t *testProvider) Request(p rids.Pattern, payload interface{}, rs interface{}, token ...[]byte) broker.Error {
 	return t.request(t.mocks.Requests, p, payload, rs, token...)
 }
 
@@ -90,7 +90,7 @@ func (t *testProvider) RequestRaw(subject string, data json.RawMessage, override
 	return t.requestRaw(t.mocks.RequestsRaw, subject, data, overrideTimeout...)
 }
 
-func (t *testProvider) Publish(p rids.Pattern, payload interface{}, token ...json.RawMessage) error {
+func (t *testProvider) Publish(p rids.Pattern, payload interface{}, token ...[]byte) error {
 	return t.request(t.mocks.Publishes, p, payload, nil, token...)
 }
 
@@ -99,7 +99,7 @@ func (t *testProvider) PublishRaw(subject string, data json.RawMessage) error {
 	return err
 }
 
-func (t *testProvider) Get(p rids.Pattern, rs interface{}, token ...json.RawMessage) broker.Error {
+func (t *testProvider) Get(p rids.Pattern, rs interface{}, token ...[]byte) broker.Error {
 	return t.Request(p, nil, rs, token...)
 }
 

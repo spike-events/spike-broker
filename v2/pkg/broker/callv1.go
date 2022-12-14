@@ -22,8 +22,8 @@ type v1Message struct {
 func NewCallV1FromJSON(data []byte, p rids.Pattern, reply string) (Call, error) {
 	type fromV1Data struct {
 		Params map[string]string `json:"Params"`
-		Data   json.RawMessage   `json:"Data"`
-		Token  json.RawMessage   `json:"Token"`
+		Data   RawData           `json:"Data"`
+		Token  string            `json:"Token"`
 		Query  string            `json:"Query"`
 	}
 	var v1Data fromV1Data
@@ -43,7 +43,7 @@ func NewCallV1FromJSON(data []byte, p rids.Pattern, reply string) (Call, error) 
 				Data:            v1Data.Data,
 				ReplyStr:        reply,
 				EndpointPattern: p.Clone(),
-				Token:           v1Data.Token,
+				Token:           []byte(v1Data.Token),
 			},
 			APIVersion: 1,
 		},
@@ -60,9 +60,9 @@ func NewCallFromV1(r *request.CallRequest) (Call, error) {
 	v1 := callV1{
 		call: call{
 			callBase: callBase{
-				Data:            r.Data,
+				Data:            RawData(r.Data),
 				EndpointPattern: p,
-				Token:           json.RawMessage(r.Token),
+				Token:           []byte(r.Token),
 			},
 			APIVersion: 2,
 		},

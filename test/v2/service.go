@@ -120,9 +120,13 @@ func (s *ServiceTest) fromMock(c broker.Call) {
 func (s *ServiceTest) callV1(c broker.Call) {
 	id, _ := uuid.NewV4()
 	var rID uuid.UUID
-	err := s.Broker().Request(V2RidForV1Service().AnswerV2Service(id), &id, &rID, json.RawMessage("\"token-string\""))
+	err := s.Broker().Request(V2RidForV1Service().AnswerV2Service(id), &id, &rID, c.RawToken())
 	if err != nil {
 		c.Error(err)
+		return
+	}
+	if rID != id {
+		c.Error(broker.ErrorInvalidParams)
 		return
 	}
 	c.OK(&rID)
@@ -134,7 +138,7 @@ func (s *ServiceTest) callV1Forbidden(c broker.Call) {
 
 func (s *ServiceTest) callWithObjPayload(c broker.Call) {
 	var payload LocalPayload
-	err := c.ParseData(&payload)
+	err := json.Unmarshal(c.RawData(), &payload)
 	if err != nil {
 		c.Error(err)
 		return

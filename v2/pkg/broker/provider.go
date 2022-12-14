@@ -37,16 +37,16 @@ type Provider interface {
 	Monitor(monitoringGroup string, s Subscription) (func(), error)
 
 	// Get calls a rids.Resource through the Provider without a paylod
-	Get(p rids.Pattern, rs interface{}, token ...json.RawMessage) Error
+	Get(p rids.Pattern, rs interface{}, token ...[]byte) Error
 
 	// Request calls a rids.Resource through the Provider passing a payload
-	Request(p rids.Pattern, payload interface{}, rs interface{}, token ...json.RawMessage) Error
+	Request(p rids.Pattern, payload interface{}, rs interface{}, token ...[]byte) Error
 
 	// RequestRaw calls a low level subject with a json.RawMessage payload and an optional timeout
 	RequestRaw(subject string, data json.RawMessage, overrideTimeout ...time.Duration) (json.RawMessage, Error)
 
 	// Publish informs the Provider that a rids.Resource event has happened
-	Publish(p rids.Pattern, payload interface{}, token ...json.RawMessage) error
+	Publish(p rids.Pattern, payload interface{}, token ...[]byte) error
 
 	// PublishRaw publishes a low-level event with a json.RawMessage on a subject
 	PublishRaw(subject string, data json.RawMessage) error

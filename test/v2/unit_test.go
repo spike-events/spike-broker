@@ -2,7 +2,6 @@ package v2
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"os"
 	"testing"
@@ -42,7 +41,7 @@ func (u *UnitTest) SetupSuite() {
 	logger := log.New(os.Stderr, "test", log.LstdFlags)
 
 	// Test Authenticator (validates token)
-	authenticator := spike.NewTestAuthenticator(func(s json.RawMessage) (json.RawMessage, bool) {
+	authenticator := spike.NewTestAuthenticator(func(s []byte) ([]byte, bool) {
 		return s, true
 	})
 
@@ -90,7 +89,7 @@ func (u *UnitTest) TestFailReplyNoToken() {
 }
 
 func (u *UnitTest) TestFromMock() {
-	testReplyMock := func(p rids.Pattern, payload interface{}, res interface{}, token ...json.RawMessage) broker.Error {
+	testReplyMock := func(p rids.Pattern, payload interface{}, res interface{}, token ...[]byte) broker.Error {
 		id, converted := payload.(uuid.UUID)
 		u.Require().True(converted)
 		*res.(*uuid.UUID) = id

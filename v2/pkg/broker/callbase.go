@@ -13,10 +13,10 @@ import (
 )
 
 type callBase struct {
-	Data            json.RawMessage `json:"Data"` // As V1 uses upper case on JSON notation we keep data this way
-	ReplyStr        string          `json:"reply"`
-	EndpointPattern rids.Pattern    `json:"endpointPattern"`
-	Token           json.RawMessage `json:"token"`
+	Data            RawData      `json:"Data"` // As V1 uses upper case on JSON notation we keep data this way
+	ReplyStr        string       `json:"reply"`
+	EndpointPattern rids.Pattern `json:"endpointPattern"`
+	Token           RawData      `json:"token"`
 	provider        Provider
 	err             Error
 }
@@ -33,7 +33,7 @@ func (c *callBase) Reply() string {
 	return c.ReplyStr
 }
 
-func (c *callBase) RawData() json.RawMessage {
+func (c *callBase) RawData() []byte {
 	return c.Data
 }
 
@@ -41,22 +41,12 @@ func (c *callBase) SetProvider(provider Provider) {
 	c.provider = provider
 }
 
-func (c *callBase) SetToken(token json.RawMessage) {
+func (c *callBase) SetToken(token []byte) {
 	c.Token = token
 }
 
-func (c *callBase) RawToken() json.RawMessage {
+func (c *callBase) RawToken() []byte {
 	return c.Token
-}
-
-func (c *callBase) ParseToken(t interface{}) {
-	token := c.Token
-	if len(token) > 0 {
-		err := json.Unmarshal([]byte(token), &t)
-		if err != nil {
-			panic("invalid token on unmarshal")
-		}
-	}
 }
 
 // PathParam retorna parametro map string
@@ -69,10 +59,6 @@ func (c *callBase) PathParam(key string) string {
 		return ""
 	}
 	return params[key].String()
-}
-
-func (c *callBase) ParseData(v interface{}) error {
-	return json.Unmarshal(c.Data, v)
 }
 
 func (c *callBase) FromJSON(data json.RawMessage, provider Provider, reply string) error {

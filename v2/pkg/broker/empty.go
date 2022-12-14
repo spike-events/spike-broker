@@ -22,8 +22,8 @@ func (e *empty) GetError() Error {
 	return nil
 }
 
-func (e *empty) RawData() json.RawMessage {
-	return json.RawMessage{}
+func (e *empty) RawData() []byte {
+	return nil
 }
 
 func (e *empty) Reply() string {
@@ -42,14 +42,14 @@ func (e *empty) SetEndpoint(p rids.Pattern) {
 	e.endpoint = p
 }
 
-func (e *empty) SetToken(token json.RawMessage) {}
+func (e *empty) SetToken(token []byte) {}
 
 func (e *empty) SetProvider(provider Provider) {
 	e.provider = provider
 }
 
-func (e *empty) RawToken() json.RawMessage {
-	return json.RawMessage{}
+func (e *empty) RawToken() []byte {
+	return nil
 }
 
 func (e *empty) ParseQuery(q interface{}) error {
