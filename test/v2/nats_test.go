@@ -133,10 +133,11 @@ func (s *NatsTest) TestReplyWithTokenAndPayload() {
 		"attr1": 10,
 		"attr2": "Ok",
 	}
-	var id uuid.UUID
-	err := Request(ServiceTestRid().TestReply(s.id), payload, &id, "token-string")
+	var respPayload map[string]interface{}
+	err := Request(ServiceTestRid().CallWithObjPayload(), payload, &respPayload, "token-string")
 	s.Require().ErrorIs(err, nil, "error response")
-	s.Require().Equal(s.id, id, "invalid response")
+	s.Require().Equal(float64(10), respPayload["attr1"], "invalid response")
+	s.Require().Equal("Ok", respPayload["attr2"], "invalid response")
 }
 
 func TestNats(t *testing.T) {

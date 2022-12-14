@@ -3,7 +3,7 @@ package v2
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"math"
 	"net/http"
 
@@ -39,7 +39,7 @@ func Request(p rids.Pattern, param interface{}, rs interface{}, token ...string)
 		return broker.NewError("request failed", res.StatusCode, res)
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return broker.InternalError(err)
 	}

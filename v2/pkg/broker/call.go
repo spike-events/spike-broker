@@ -176,7 +176,7 @@ func (c *call) ToJSON() json.RawMessage {
 			APIVersion: c.Endpoint().Version(),
 		}
 	} else {
-		toSend = &callV1Compatible{
+		toSend = &callV2Compatible{
 			call: call{
 				callBase: c.callBase,
 			},
