@@ -131,7 +131,7 @@ func (c *call) UnmarshalJSON(data []byte) error {
 func (c *call) ToJSON() json.RawMessage {
 	type callV1Compatible struct {
 		call
-		Data       json.RawMessage   `json:"Data"`
+		Data       []byte            `json:"Data"`
 		Params     map[string]string `json:"Params"`
 		TokenV1    string            `json:"Token"`
 		QueryV1    string            `json:"Query"`
