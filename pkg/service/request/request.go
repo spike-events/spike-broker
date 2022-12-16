@@ -54,7 +54,7 @@ func (a *AccessRequest) AccessGranted() {
 // CallRequest handler
 type CallRequest struct {
 	Params   map[string]string
-	Data     json.RawMessage
+	Data     []byte
 	reply    string
 	provider Provider
 
