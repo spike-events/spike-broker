@@ -4,6 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
+	"os"
+	"runtime/debug"
+	"time"
+
 	"github.com/go-chi/chi"
 	"github.com/gofrs/uuid"
 	"github.com/nats-io/nats.go"
@@ -17,10 +22,6 @@ import (
 	"github.com/spike-events/spike-broker/pkg/service/request"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"log"
-	"os"
-	"runtime/debug"
-	"time"
 )
 
 const (
@@ -136,7 +137,7 @@ func (s *Base) TryLock(lockName ...string) bool {
 		lock.UnlockedOn = nil
 		err := tx.Save(&lock).Error
 		if err != nil {
-			panic(err)
+			return err
 		}
 		return nil
 	})

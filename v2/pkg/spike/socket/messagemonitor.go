@@ -36,7 +36,7 @@ func (m *WSMessageMonitor) Handle(ws WSConnection) broker.Error {
 		}
 		err := ws.WSConnection().WriteJSON(wsMsg)
 		if err != nil {
-			r.InternalError(err)
+			r.Error(err)
 			return
 		}
 		r.OK()

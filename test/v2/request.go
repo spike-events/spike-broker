@@ -1,10 +1,11 @@
-package test
+package v2
 
 import (
+	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
+	"math"
 	"net/http"
-	"strings"
 
 	"github.com/spike-events/spike-broker/v2/pkg/broker"
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
@@ -16,7 +17,7 @@ func Request(p rids.Pattern, param interface{}, rs interface{}, token ...string)
 	endpoint := "http://localhost:3333" + p.EndpointREST()
 
 	data, _ := json.Marshal(param)
-	payload := strings.NewReader(string(data))
+	payload := bytes.NewReader(data)
 	req, err := http.NewRequest(p.Method(), endpoint, payload)
 	if err != nil {
 		return broker.InternalError(err)
@@ -34,13 +35,16 @@ func Request(p rids.Pattern, param interface{}, rs interface{}, token ...string)
 
 	defer res.Body.Close()
 
-	body, err := ioutil.ReadAll(res.Body)
+	if math.Abs(float64(res.StatusCode-http.StatusOK)) >= 100 {
+		return broker.NewError("request failed", res.StatusCode, res)
+	}
 
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return broker.InternalError(err)
 	}
 
-	rError := broker.NewErrorFromJSON(body)
+	rError := broker.NewMessageFromJSON(body)
 	if rError != nil && rError.Code() > http.StatusOK {
 		return rError
 	}

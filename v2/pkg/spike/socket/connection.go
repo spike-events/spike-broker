@@ -25,7 +25,7 @@ type Options struct {
 
 type WSConnection interface {
 	GetID() fmt.Stringer
-	GetToken() string
+	GetToken() broker.RawData
 	GetHandlers() []rids.Pattern
 	Context() context.Context
 	CancelContext()
@@ -33,8 +33,8 @@ type WSConnection interface {
 	Broker() broker.Provider
 	Authenticator() service.Authenticator
 	Authorizer() service.Authorizer
-	GetSessionToken() string
-	SetSessionToken(token string)
+	GetSessionToken() broker.RawData
+	SetSessionToken(token broker.RawData)
 	SetSessionID(id string)
 }
 
@@ -47,14 +47,14 @@ type wsConnection struct {
 	authenticator service.Authenticator
 	authorizer    service.Authorizer
 	handlers      []rids.Pattern
-	token         string
+	token         broker.RawData
 }
 
 func (ws *wsConnection) GetID() fmt.Stringer {
 	return spike_utils.Stringer(ws.ID)
 }
 
-func (ws *wsConnection) GetToken() string {
+func (ws *wsConnection) GetToken() broker.RawData {
 	return ws.token
 }
 
@@ -85,11 +85,11 @@ func (ws *wsConnection) Authorizer() service.Authorizer {
 	return ws.authorizer
 }
 
-func (ws *wsConnection) GetSessionToken() string {
+func (ws *wsConnection) GetSessionToken() broker.RawData {
 	return ws.token
 }
 
-func (ws *wsConnection) SetSessionToken(token string) {
+func (ws *wsConnection) SetSessionToken(token broker.RawData) {
 	ws.token = token
 }
 

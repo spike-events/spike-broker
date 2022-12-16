@@ -1,8 +1,6 @@
 package broker
 
-import "encoding/json"
-
-type Success struct {
-	Code int             `json:"code"`
-	Data json.RawMessage `json:"data"`
+type Message struct {
+	CodeInt   int         `json:"code"`
+	DataIface interface{} `json:"data"`
 }

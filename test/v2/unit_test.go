@@ -1,4 +1,4 @@
-package test
+package v2
 
 import (
 	"context"
@@ -22,6 +22,10 @@ type UnitTest struct {
 	svc spike.APITestService
 }
 
+func (u *UnitTest) TearDownSuite() {
+	u.svc.Stop()
+}
+
 func (u *UnitTest) SetupSuite() {
 	// Create instance ID
 	id, err := uuid.NewV4()
@@ -37,7 +41,7 @@ func (u *UnitTest) SetupSuite() {
 	logger := log.New(os.Stderr, "test", log.LstdFlags)
 
 	// Test Authenticator (validates token)
-	authenticator := spike.NewTestAuthenticator(func(s string) (string, bool) {
+	authenticator := spike.NewTestAuthenticator(func(s []byte) ([]byte, bool) {
 		return s, true
 	})
 
@@ -71,20 +75,21 @@ func (u *UnitTest) SetupSuite() {
 }
 
 func (u *UnitTest) TestFailReplyNoToken() {
-	t := spike.APITestRequestOrPublish{
+	t := spike.APITestAccess{
 		Pattern: ServiceTestRid().TestReply(u.id),
-		AccessErr: func(value interface{}) {
+		Err: func(index int, value interface{}) {
+			u.Require().Equal(0, index, "invalid error index")
 			err, valid := value.(broker.Error)
 			u.Require().True(valid, "invalid error")
 			u.Require().ErrorIs(broker.ErrorAccessDenied, err)
 		},
 	}
-	err := u.svc.TestRequestOrPublish(t)
+	err := u.svc.TestAccess(t)
 	u.Require().NotNil(err)
 }
 
 func (u *UnitTest) TestFromMock() {
-	testReplyMock := func(p rids.Pattern, payload interface{}, res interface{}, token ...string) broker.Error {
+	testReplyMock := func(p rids.Pattern, payload interface{}, res interface{}, token ...[]byte) broker.Error {
 		id, converted := payload.(uuid.UUID)
 		u.Require().True(converted)
 		*res.(*uuid.UUID) = id
@@ -93,18 +98,12 @@ func (u *UnitTest) TestFromMock() {
 
 	t := spike.APITestRequestOrPublish{
 		Pattern: ServiceTestRid().FromMock(),
-		RequestOk: func(value ...interface{}) {
+		Ok: func(value ...interface{}) {
 			u.Require().NotEmpty(value, "no value provider")
 			_, valid := value[0].(*uuid.UUID)
 			u.Require().True(valid, "value is not uuid")
 		},
-		AccessOk: func(value ...interface{}) {
-			u.Require().Empty(value)
-		},
-		RequestErr: func(value interface{}) {
-			u.Require().Nil(value)
-		},
-		AccessErr: func(value interface{}) {
+		Err: func(value interface{}) {
 			u.Require().Nil(value)
 		},
 		Mocks: testProvider.Mocks{
@@ -115,6 +114,32 @@ func (u *UnitTest) TestFromMock() {
 	}
 	err := u.svc.TestRequestOrPublish(t)
 	u.Require().Nil(err)
+}
+
+func (u *UnitTest) TestWithObjectPayload() {
+	obj := map[string]interface{}{
+		"attr1": 10,
+		"attr2": "Ok",
+	}
+	t := spike.APITestRequestOrPublish{
+		Pattern:    ServiceTestRid().CallWithObjPayload(),
+		Repository: nil,
+		Payload:    obj,
+		Token:      nil,
+		Ok: func(i ...interface{}) {
+			u.Require().NotEmpty(i, "should have a return value")
+			payload, valid := i[0].(*LocalPayload)
+			u.Require().True(valid, "should have been a LocalPayload")
+			u.Require().Equal(payload.Attr1, 10)
+			u.Require().Equal(payload.Attr2, "Ok")
+		},
+		Err: func(i interface{}) {
+			u.FailNow("Should have succeeded")
+		},
+		Mocks: testProvider.Mocks{},
+	}
+	err := u.svc.TestRequestOrPublish(t)
+	u.Require().Nil(err, "Should have returned success")
 }
 
 func TestUnit(t *testing.T) {

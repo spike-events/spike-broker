@@ -5,7 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/pprof"
 	"strings"
@@ -27,8 +27,8 @@ type HttpOptions struct {
 	// Broker implements the broker.Provider interface to allow HTTP Server to reach Spike network
 	Broker broker.Provider
 
-	// Handlers patterns handled by the HTTP Server
-	Handlers []rids.Pattern
+	// Resources handled by the HTTP Server
+	Resources []rids.Resource
 
 	// Authenticator implements the service.Authenticator interface to validate and process token
 	Authenticator service.Authenticator
@@ -63,8 +63,8 @@ func NewHttpServer(ctx context.Context, opts HttpOptions) HttpServer {
 		panic("invalid empty options Broker")
 	}
 
-	if len(opts.Handlers) == 0 {
-		panic("invalid empty options Handlers")
+	if len(opts.Resources) == 0 {
+		panic("invalid empty options Resources")
 	}
 
 	router := chi.NewRouter()
@@ -152,33 +152,39 @@ func (h *httpServer) Shutdown() error {
 
 func (h *httpServer) httpSetup(wsPrefix string) {
 	// Register routes
-	for _, p := range h.opts.Handlers {
-		method := p.EndpointREST()
-		httpHandler := func(w http.ResponseWriter, r *http.Request) {
-			h.httpHandler(p, w, r)
-		}
+	handlers := make([]rids.Pattern, 0)
+	for _, resource := range h.opts.Resources {
+		rHandlers := rids.Patterns(resource)
+		handlers = append(handlers, rHandlers...)
+		for _, ptr := range rHandlers {
+			p := ptr
+			endpoint := p.EndpointREST()
+			httpHandler := func(w http.ResponseWriter, r *http.Request) {
+				h.httpHandler(p, w, r)
+			}
 
-		for param := range p.Params() {
-			method = strings.ReplaceAll(method, fmt.Sprintf("$%s", param), fmt.Sprintf("{%s}", param))
-		}
-		h.opts.Logger.Printf("%s -> %s", p.Method(), method)
-		switch p.Method() {
-		case http.MethodGet:
-			h.router.Get(method, httpHandler)
-		case http.MethodPost:
-			h.router.Post(method, httpHandler)
-		case http.MethodPut:
-			h.router.Put(method, httpHandler)
-		case http.MethodPatch:
-			h.router.Patch(method, httpHandler)
-		case http.MethodDelete:
-			h.router.Delete(method, httpHandler)
-		}
+			for param := range p.Params() {
+				endpoint = strings.ReplaceAll(endpoint, fmt.Sprintf("$%s", param), fmt.Sprintf("{%s}", param))
+			}
+			h.opts.Logger.Printf("%s -> %s", p.Method(), endpoint)
+			switch p.Method() {
+			case http.MethodGet:
+				h.router.Get(endpoint, httpHandler)
+			case http.MethodPost:
+				h.router.Post(endpoint, httpHandler)
+			case http.MethodPut:
+				h.router.Put(endpoint, httpHandler)
+			case http.MethodPatch:
+				h.router.Patch(endpoint, httpHandler)
+			case http.MethodDelete:
+				h.router.Delete(endpoint, httpHandler)
+			}
 
+		}
 	}
 	// TODO: Implement WebSocket handler
 	wsOpts := socket.Options{
-		Handlers:      h.opts.Handlers,
+		Handlers:      handlers,
 		Broker:        h.opts.Broker,
 		Authenticator: h.opts.Authenticator,
 		Authorizer:    h.opts.Authorizer,
@@ -192,14 +198,18 @@ func (h *httpServer) httpHandler(p rids.Pattern, w http.ResponseWriter, r *http.
 
 	defer r.Body.Close()
 
-	data, err := ioutil.ReadAll(r.Body)
+	data, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(err.Error()))
 		return
 	}
 
-	token, _ := spikeutils.GetBearer(r)
+	var token json.RawMessage
+	tokenStr, _ := spikeutils.GetBearer(r)
+	if len(tokenStr) > 0 {
+		token = json.RawMessage(tokenStr)
+	}
 	params := make(map[string]fmt.Stringer)
 	for param := range p.Params() {
 		value := chi.URLParam(r, param)
@@ -209,7 +219,7 @@ func (h *httpServer) httpHandler(p rids.Pattern, w http.ResponseWriter, r *http.
 	}
 
 	p = p.Clone()
-	call := broker.NewHTTPCall(p, token, string(data), params, r.Form.Encode())
+	call := broker.NewHTTPCall(p, token, data, params, r.Form.Encode())
 	result, rErr := h.opts.Broker.RequestRaw(p.EndpointName(), call.ToJSON())
 	if rErr != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -217,8 +227,8 @@ func (h *httpServer) httpHandler(p rids.Pattern, w http.ResponseWriter, r *http.
 		return
 	}
 
-	parsedResponse := broker.NewErrorFromJSON(result)
-	if parsedResponse != nil && parsedResponse.Message() != "" {
+	parsedResponse := broker.NewMessageFromJSON(result)
+	if parsedResponse != nil && parsedResponse.Error() != "" {
 		w.WriteHeader(parsedResponse.Code())
 		w.Write(parsedResponse.ToJSON())
 		return
@@ -242,11 +252,13 @@ func (h *httpServer) httpHandler(p rids.Pattern, w http.ResponseWriter, r *http.
 		}
 	}
 
-	if data, err = json.Marshal(parsedResponse.Data()); err != nil {
+	data, err = json.Marshal(parsedResponse.Data())
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
-	} else {
-		w.WriteHeader(http.StatusOK)
-		w.Write(data)
+		return
 	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
 }

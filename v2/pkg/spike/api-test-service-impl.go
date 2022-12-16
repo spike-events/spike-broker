@@ -85,6 +85,24 @@ func (s *testServiceImpl) Stop() error {
 	return nil
 }
 
+func (s *testServiceImpl) TestAccess(params APITestAccess) broker.Error {
+	if s.opts == nil {
+		return broker.InternalError(fmt.Errorf("API not initialized"))
+	}
+
+	err := s.opts.Service.SetRepository(params.Repository)
+	if err != nil {
+		return broker.InternalError(err)
+	}
+
+	s.broker.SetMocks(params.Mocks)
+
+	call := testProvider.NewCall(params.Pattern, params.Payload, params.Token, nil, nil)
+	access := testProvider.NewAccess(params.Pattern, params.Payload, params.Token, nil, nil)
+	handleAccessForTest(params.Pattern, call, access, params.Ok, params.Err, *s.opts)
+	return access.GetError()
+}
+
 func (s *testServiceImpl) TestRequestOrPublish(params APITestRequestOrPublish) broker.Error {
 	if s.opts == nil {
 		return broker.InternalError(fmt.Errorf("API not initialized"))
@@ -97,12 +115,7 @@ func (s *testServiceImpl) TestRequestOrPublish(params APITestRequestOrPublish) b
 
 	s.broker.SetMocks(params.Mocks)
 
-	call := testProvider.NewCall(params.Pattern, params.Payload, params.Token, params.RequestOk, params.RequestErr)
-	access := testProvider.NewAccess(params.Pattern, params.Payload, params.Token, params.AccessOk, params.AccessErr)
-	handleRequest(params.Pattern, call, access, *s.opts)
-	if access.GetError() != nil {
-		return access.GetError()
-	}
-
+	call := testProvider.NewCall(params.Pattern, params.Payload, params.Token, params.Ok, params.Err)
+	handleRequestForTest(params.Pattern, call, *s.opts)
 	return call.GetError()
 }

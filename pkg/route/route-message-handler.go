@@ -53,6 +53,9 @@ func (s *routeService) handler(endpoint rids.EndpointRest, w http.ResponseWriter
 		}
 	}
 	token := r.Header.Get("token")
+	if len(data) == 0 {
+		data = nil
+	}
 	call := request.CallRequest{
 		Data:     data,
 		Params:   params,

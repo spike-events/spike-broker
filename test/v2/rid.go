@@ -1,4 +1,4 @@
-package test
+package v2
 
 import (
 	"fmt"
@@ -30,5 +30,21 @@ func (s *serviceTestRid) ForbiddenCall() rids.Pattern {
 }
 
 func (s *serviceTestRid) FromMock() rids.Pattern {
-	return s.NewMethod("Emulate an endpoint to be used on mock", "from.mock").Internal()
+	return s.NewMethod("Emulate an endpoint to be used on mock", "from.mock").Get()
+}
+
+func (s *serviceTestRid) CallV1() rids.Pattern {
+	return s.NewMethod("Call a Spike V1 service method", "callV1").Get()
+}
+
+func (s *serviceTestRid) CallV1Forbidden() rids.Pattern {
+	return s.NewMethod("Call a Spike V1 service method that returns error", "callV1.forbidden").Get()
+}
+
+func (s *serviceTestRid) CallWithObjPayload() rids.Pattern {
+	return s.NewMethod("Call passing a map expecting to turn into an object", "payload.object").Post()
+}
+
+func (s *serviceTestRid) NoHandler() rids.Pattern {
+	return s.NewMethod("Route without handler to test 503 errors on NATS", "invalid").Get()
 }

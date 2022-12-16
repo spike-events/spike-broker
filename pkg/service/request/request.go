@@ -3,9 +3,6 @@ package request
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/hetiansu5/urlquery"
-	"github.com/spike-events/spike-broker/pkg/utils"
-	"github.com/vincent-petithory/dataurl"
 	"log"
 	"net/http"
 	"net/url"
@@ -13,6 +10,10 @@ import (
 	"runtime/debug"
 	"strings"
 	"time"
+
+	"github.com/hetiansu5/urlquery"
+	"github.com/spike-events/spike-broker/pkg/utils"
+	"github.com/vincent-petithory/dataurl"
 )
 
 type AccessRequest struct {

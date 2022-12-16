@@ -9,7 +9,7 @@ import (
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
 )
 
-type RequestMock func(p rids.Pattern, payload interface{}, res interface{}, token ...string) broker.Error
+type RequestMock func(p rids.Pattern, payload interface{}, res interface{}, token ...[]byte) broker.Error
 type RequestRawMock func(payload json.RawMessage, overrideTimeout ...time.Duration) (json.RawMessage, broker.Error)
 
 type Mocks struct {
@@ -33,7 +33,8 @@ type testProvider struct {
 	monitors      map[string]map[string]broker.Subscription
 }
 
-func (t *testProvider) SetHandler(_ func(p rids.Pattern, payload []byte, replyEndpoint string)) {}
+func (t *testProvider) SetHandler(_ string, _ broker.ServiceHandler) {
+}
 
 func (t *testProvider) SetMocks(mocks Mocks) {
 	t.mocks = mocks
@@ -62,11 +63,11 @@ func NewTestProvider(ctx context.Context) Provider {
 
 /* Provider Inteface */
 
-func (t *testProvider) request(mp map[string]RequestMock, p rids.Pattern, payload interface{}, rs interface{}, token ...string) broker.Error {
+func (t *testProvider) request(mp map[string]RequestMock, p rids.Pattern, payload interface{}, rs interface{}, token ...[]byte) broker.Error {
 	if f, ok := mp[p.EndpointName()]; ok {
 		return f(p, payload, rs, token...)
 	}
-	return broker.ErrorNotFound
+	return broker.ErrorServiceUnavailable
 }
 
 func (t *testProvider) requestRaw(
@@ -78,10 +79,10 @@ func (t *testProvider) requestRaw(
 	if f, ok := mp[subject]; ok {
 		return f(data, overrideTimeout...)
 	}
-	return nil, broker.ErrorNotFound
+	return nil, broker.ErrorServiceUnavailable
 }
 
-func (t *testProvider) Request(p rids.Pattern, payload interface{}, rs interface{}, token ...string) broker.Error {
+func (t *testProvider) Request(p rids.Pattern, payload interface{}, rs interface{}, token ...[]byte) broker.Error {
 	return t.request(t.mocks.Requests, p, payload, rs, token...)
 }
 
@@ -89,7 +90,7 @@ func (t *testProvider) RequestRaw(subject string, data json.RawMessage, override
 	return t.requestRaw(t.mocks.RequestsRaw, subject, data, overrideTimeout...)
 }
 
-func (t *testProvider) Publish(p rids.Pattern, payload interface{}, token ...string) error {
+func (t *testProvider) Publish(p rids.Pattern, payload interface{}, token ...[]byte) error {
 	return t.request(t.mocks.Publishes, p, payload, nil, token...)
 }
 
@@ -98,7 +99,7 @@ func (t *testProvider) PublishRaw(subject string, data json.RawMessage) error {
 	return err
 }
 
-func (t *testProvider) Get(p rids.Pattern, rs interface{}, token ...string) broker.Error {
+func (t *testProvider) Get(p rids.Pattern, rs interface{}, token ...[]byte) broker.Error {
 	return t.Request(p, nil, rs, token...)
 }
 

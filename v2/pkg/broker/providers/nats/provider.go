@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"regexp"
@@ -41,7 +42,7 @@ func init() {
 
 type Provider struct {
 	config    Config
-	handler   func(p rids.Pattern, payload []byte, replyEndpoint string)
+	handler   map[string]broker.ServiceHandler
 	debug     bool
 	localNats *server.Server
 }
@@ -78,7 +79,8 @@ func (s *Provider) newNatsBus() (*nats.Conn, error) {
 
 func NewNatsProvider(config Config) broker.Provider {
 	natsConn := &Provider{
-		config: config,
+		config:  config,
+		handler: make(map[string]broker.ServiceHandler),
 	}
 
 	m.Lock()
@@ -109,8 +111,8 @@ func NewNatsProvider(config Config) broker.Provider {
 	return natsConn
 }
 
-func (s *Provider) SetHandler(handler func(p rids.Pattern, payload []byte, replyEndpoint string)) {
-	s.handler = handler
+func (s *Provider) SetHandler(service string, handler broker.ServiceHandler) {
+	s.handler[service] = handler
 }
 
 func (s *Provider) Drain() {
@@ -132,6 +134,8 @@ func (s *Provider) Close() {
 			bus.Close()
 		}
 	})
+	globalConnections.Unlink(globalConnections.Len() - 1)
+	globalConnections = nil
 	if s.localNats != nil {
 		s.localNats.Shutdown()
 	}
@@ -162,7 +166,7 @@ func (s *Provider) subscribe(pattern rids.Pattern) (string, string, chan *nats.M
 	go func() {
 		p := pattern
 		for msg := range msgs {
-			go s.handler(p, msg.Data, msg.Reply)
+			go s.handler[pattern.Service()](p, msg.Data, msg.Reply)
 		}
 		s.printDebug("nats: channel closed on endpoint %s", p.EndpointName())
 	}()
@@ -233,7 +237,7 @@ func (s *Provider) Monitor(monitoringGroup string, sub broker.Subscription) (fun
 }
 
 // Publish endpoint nats
-func (s *Provider) Publish(p rids.Pattern, payload interface{}, token ...string) error {
+func (s *Provider) Publish(p rids.Pattern, payload interface{}, token ...[]byte) error {
 	call := broker.NewCall(p, payload)
 	if len(token) > 0 && len(token[0]) > 0 {
 		call.SetToken(token[0])
@@ -244,14 +248,14 @@ func (s *Provider) Publish(p rids.Pattern, payload interface{}, token ...string)
 }
 
 // Get endpoint nats
-func (s *Provider) Get(p rids.Pattern, rs interface{}, token ...string) broker.Error {
+func (s *Provider) Get(p rids.Pattern, rs interface{}, token ...[]byte) broker.Error {
 	return s.Request(p, nil, rs, token...)
 }
 
-// Request endpoint nats
-func (s *Provider) Request(p rids.Pattern, payload interface{}, rs interface{}, token ...string) broker.Error {
+// Request endpoint nats FIXME: This is a general handler
+func (s *Provider) Request(p rids.Pattern, payload interface{}, rs interface{}, token ...[]byte) broker.Error {
 	call := broker.NewCall(p, payload)
-	if len(token) > 0 && token[0] != "" && len(token[0]) > 0 {
+	if len(token) > 0 && len(token[0]) > 0 {
 		call.SetToken(token[0])
 	}
 
@@ -263,18 +267,21 @@ func (s *Provider) Request(p rids.Pattern, payload interface{}, rs interface{}, 
 		s.printDebug("nats: request to endpoint %s successful", p.EndpointName())
 	}
 
-	eError := broker.NewErrorFromJSON(result)
-	if eError != nil || (eError.Code() != http.StatusOK) {
-		return eError
+	bMsg := broker.NewMessageFromJSON(result)
+	if bMsg == nil {
+		return broker.NewError("invalid payload", http.StatusInternalServerError, result)
+	}
+
+	if math.Abs(float64(bMsg.Code()-http.StatusOK)) >= 100 {
+		return bMsg
 	}
 
 	if rs != nil {
-		data, ok := eError.Data().([]byte)
-		if !ok {
-			return broker.NewError("invalid response payload", http.StatusExpectationFailed, eError.Data())
-		}
-		err := json.Unmarshal(data, rs)
+		data, err := json.Marshal(bMsg.Data())
 		if err != nil {
+			return broker.InternalError(err)
+		}
+		if err = json.Unmarshal(data, rs); err != nil {
 			return broker.InternalError(err)
 		}
 	}
@@ -355,7 +362,7 @@ func (s *Provider) processResponse(subject, inbox string, c chan *nats.Msg, t ti
 			respStr := string(msg.Data)
 			timeout, resErr := s.getTimeout(respStr)
 			if resErr != nil {
-				s.printDebug("nats: invalid timeout response on endpoint %s inbox %s: %s", subject, inbox, resErr.Message)
+				s.printDebug("nats: invalid timeout response on endpoint %s inbox %s: %s", subject, inbox, resErr.Error())
 				return nil, resErr
 			}
 
@@ -365,6 +372,13 @@ func (s *Provider) processResponse(subject, inbox string, c chan *nats.Msg, t ti
 				break
 			}
 
+			if respStr == "" {
+				// TODO: Map all possible problematic headers
+				//if msg.Header.Get("Status") == "503" {
+				//	return nil, broker.ErrorServiceUnavailable
+				//}
+				return nil, broker.ErrorServiceUnavailable
+			}
 			return msg.Data, nil
 
 		case <-timer.C:

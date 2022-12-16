@@ -1,13 +1,19 @@
-package test
+package v2
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/gofrs/uuid"
 	"github.com/spike-events/spike-broker/v2/pkg/broker"
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
 	"github.com/spike-events/spike-broker/v2/pkg/service"
 )
+
+type LocalPayload struct {
+	Attr1 int    `json:"attr1"`
+	Attr2 string `json:"attr2"`
+}
 
 type ServiceTest struct {
 	key    uuid.UUID
@@ -29,7 +35,9 @@ func (s *ServiceTest) Start(key uuid.UUID, ctx context.Context) error {
 }
 
 func (s *ServiceTest) Stop() chan bool {
-	return make(chan bool, 1)
+	c := make(chan bool, 1)
+	c <- true
+	return c
 }
 
 func (s *ServiceTest) Handlers() []broker.Subscription {
@@ -43,6 +51,19 @@ func (s *ServiceTest) Handlers() []broker.Subscription {
 			Resource:   ServiceTestRid().FromMock(),
 			Handler:    s.fromMock,
 			Validators: nil,
+		},
+		{
+			Resource:   ServiceTestRid().CallV1(),
+			Handler:    s.callV1,
+			Validators: nil,
+		},
+		{
+			Resource: ServiceTestRid().CallV1Forbidden(),
+			Handler:  s.callV1Forbidden,
+		},
+		{
+			Resource: ServiceTestRid().CallWithObjPayload(),
+			Handler:  s.callWithObjPayload,
 		},
 	}
 }
@@ -68,7 +89,7 @@ func (s *ServiceTest) Logger() service.Logger {
 }
 
 func (s *ServiceTest) validateReply(a broker.Access) {
-	if a.RawToken() == "" {
+	if len(a.RawToken()) == 0 {
 		a.AccessDenied()
 		return
 	}
@@ -78,7 +99,7 @@ func (s *ServiceTest) validateReply(a broker.Access) {
 func (s *ServiceTest) reply(c broker.Call) {
 	id, err := uuid.FromString(c.PathParam("ID"))
 	if err != nil {
-		c.InternalError(err)
+		c.Error(err)
 		return
 	}
 	c.OK(&id)
@@ -87,13 +108,42 @@ func (s *ServiceTest) reply(c broker.Call) {
 func (s *ServiceTest) fromMock(c broker.Call) {
 	id, _ := uuid.NewV4()
 	var replyID uuid.UUID
-	err := s.Broker().Request(ServiceTestRid().TestReply(id), id, &replyID)
+	err := s.Broker().Request(ServiceTestRid().TestReply(id), id, &replyID, c.RawToken())
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
 	c.OK(&replyID)
+}
+
+func (s *ServiceTest) callV1(c broker.Call) {
+	id, _ := uuid.NewV4()
+	var rID uuid.UUID
+	err := s.Broker().Request(V2RidForV1Service().AnswerV2Service(id), &id, &rID, c.RawToken())
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	if rID != id {
+		c.Error(broker.ErrorInvalidParams)
+		return
+	}
+	c.OK(&rID)
+}
+
+func (s *ServiceTest) callV1Forbidden(c broker.Call) {
+
+}
+
+func (s *ServiceTest) callWithObjPayload(c broker.Call) {
+	var payload LocalPayload
+	err := json.Unmarshal(c.RawData(), &payload)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	c.OK(&payload)
 }
 
 func NewServiceTest(broker broker.Provider, logger service.Logger) service.Service {

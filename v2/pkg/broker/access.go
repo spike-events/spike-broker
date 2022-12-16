@@ -12,11 +12,14 @@ type Access interface {
 func NewAccess(callMsg Call) Access {
 	return &accessRequest{
 		call: call{
-			Data:            callMsg.RawData(),
-			ReplyStr:        callMsg.Reply(),
-			EndpointPattern: callMsg.Endpoint(),
-			Token:           callMsg.RawToken(),
-			provider:        callMsg.Provider(),
+			callBase: callBase{
+				Data:            callMsg.RawData(),
+				ReplyStr:        callMsg.Reply(),
+				EndpointPattern: callMsg.Endpoint(),
+				Token:           callMsg.RawToken(),
+				provider:        callMsg.Provider(),
+			},
+			APIVersion: 2,
 		},
 	}
 }

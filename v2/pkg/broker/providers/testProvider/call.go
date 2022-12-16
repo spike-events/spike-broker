@@ -13,8 +13,8 @@ import (
 type callRequest struct {
 	p       rids.Pattern
 	result  broker.Error
-	token   string
-	payload interface{}
+	token   broker.RawData
+	payload broker.RawData
 	okF     func(...interface{})
 	errF    func(interface{})
 }
@@ -23,16 +23,12 @@ func (c *callRequest) GetError() broker.Error {
 	return c.result
 }
 
-func (c *callRequest) RawToken() string {
+func (c *callRequest) RawToken() []byte {
 	return c.token
 }
 
-func (c *callRequest) RawData() interface{} {
-	data, err := json.Marshal(c.payload)
-	if err != nil {
-		panic("invalid data on marshal")
-	}
-	return data
+func (c *callRequest) RawData() []byte {
+	return c.payload
 }
 
 func (c *callRequest) Reply() string {
@@ -47,16 +43,6 @@ func (c *callRequest) Endpoint() rids.Pattern {
 	return c.p
 }
 
-func (c *callRequest) ParseToken(t interface{}) {
-	token := c.token
-	if len(token) > 0 {
-		err := json.Unmarshal([]byte(token), &t)
-		if err != nil {
-			panic("invalid token on unmarshal")
-		}
-	}
-}
-
 func (c *callRequest) PathParam(key string) string {
 	params := c.Endpoint().Params()
 	if params == nil {
@@ -69,8 +55,7 @@ func (c *callRequest) PathParam(key string) string {
 }
 
 func (c *callRequest) ParseData(v interface{}) error {
-	data := c.RawData()
-	return json.Unmarshal(data.(json.RawMessage), v)
+	return json.Unmarshal([]byte(c.payload), v)
 }
 
 func (c *callRequest) ParseQuery(q interface{}) error {
@@ -106,18 +91,24 @@ func (c *callRequest) File(f *dataurl.DataURL) {
 
 func (c *callRequest) OK(result ...interface{}) {
 	c.result = nil
-	c.okF(result...)
+	if c.okF != nil {
+		c.okF(result...)
+	}
 }
 
 func (c *callRequest) InternalError(err error) {
 	c.result = broker.InternalError(err)
-	c.errF(c.result)
+	if c.errF != nil {
+		c.errF(c.result)
+	}
 }
 
 func (c *callRequest) Error(err error, msg ...string) {
 	if brokerErr, ok := err.(broker.Error); ok {
 		c.result = brokerErr
-		c.errF(c.result)
+		if c.errF != nil {
+			c.errF(c.result)
+		}
 		return
 	}
 	c.InternalError(err)
@@ -125,7 +116,9 @@ func (c *callRequest) Error(err error, msg ...string) {
 
 func (c *callRequest) NotFound() {
 	c.result = broker.ErrorNotFound
-	c.errF(c.result)
+	if c.errF != nil {
+		c.errF(c.result)
+	}
 }
 
 func (c *callRequest) SetReply(reply string) {
@@ -133,7 +126,7 @@ func (c *callRequest) SetReply(reply string) {
 	panic("implement me")
 }
 
-func (c *callRequest) SetToken(token string) {
+func (c *callRequest) SetToken(token []byte) {
 	c.token = token
 }
 
@@ -147,17 +140,18 @@ func (c *callRequest) SetEndpoint(p rids.Pattern) {
 	panic("implement me")
 }
 
-func NewCall(p rids.Pattern, payload interface{}, token string, okF func(...interface{}), errF func(interface{})) broker.Call {
+func NewCall(p rids.Pattern, payload interface{}, token []byte, okF func(...interface{}), errF func(interface{})) broker.Call {
 	if okF == nil {
 		okF = func(...interface{}) {}
 	}
 	if errF == nil {
 		errF = func(interface{}) {}
 	}
+	data, _ := json.Marshal(payload)
 	return &callRequest{
 		p:       p,
 		token:   token,
-		payload: payload,
+		payload: data,
 		okF:     okF,
 		errF:    errF,
 	}
