@@ -8,7 +8,7 @@ require (
 	github.com/go-playground/universal-translator v0.17.0 // indirect
 	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/gofrs/uuid v4.0.0+incompatible
-	github.com/gorilla/websocket v1.4.2
+	github.com/gorilla/websocket v1.5.0
 	github.com/hetiansu5/urlquery v1.2.6
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/nats-io/nats-server/v2 v2.1.9

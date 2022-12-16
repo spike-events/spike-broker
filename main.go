@@ -3,6 +3,7 @@ package spikebroker
 import (
 	"context"
 	"fmt"
+	"github.com/go-chi/chi"
 	"github.com/spike-events/spike-broker/pkg/providers"
 	"log"
 	"os"
@@ -96,6 +97,8 @@ func NewProxyServer(db *gorm.DB, services []HandlerService, handlerAuth HandlerA
 		startedList := make([]service.Service, 0, len(services))
 		startDeps := make([]func(), 0)
 		startAllDeps := make([]func(), 0)
+
+		var externalRoutes []func(r *chi.Mux)
 		for _, srv := range services {
 			s := srv(db, v5)
 			if servicesType[s.Rid().Name()] == s.Rid().Name() || options.Developer {
@@ -124,6 +127,7 @@ func NewProxyServer(db *gorm.DB, services []HandlerService, handlerAuth HandlerA
 					s.AllServicesStarted()
 					log.Println("<< allServicesStarted", s.Rid().Name())
 				})
+				externalRoutes = append(externalRoutes, s.HandlerFunc)
 			}
 		}
 
@@ -134,6 +138,8 @@ func NewProxyServer(db *gorm.DB, services []HandlerService, handlerAuth HandlerA
 		for _, allSrvStart := range startAllDeps {
 			allSrvStart()
 		}
+
+		routerService.SetHandlerFunc(externalRoutes)
 
 		// Inform Route Service
 		routerService.AllServicesStarted()

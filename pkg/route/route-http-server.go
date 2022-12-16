@@ -77,6 +77,10 @@ func (s *routeService) serve() chan bool {
 			}
 		}
 
+		for _, route := range s.externalRoutes {
+			route(r)
+		}
+
 		/* WebSocket handler with Patterns */
 		r.HandleFunc("/ws", socket.NewConnectionWS(s.Base, s.auths...))
 

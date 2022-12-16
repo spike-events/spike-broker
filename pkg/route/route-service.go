@@ -28,10 +28,15 @@ type routeService struct {
 	restart        chan bool
 	quitRestartJob chan bool
 
-	routes *chi.Mux
+	routes         *chi.Mux
+	externalRoutes []func(r *chi.Mux)
 }
 
 var routeServiceImpl *routeService
+
+func (s *routeService) SetHandlerFunc(externalRoutes []func(r *chi.Mux)) {
+	s.externalRoutes = externalRoutes
+}
 
 // NewRouteService instance route service
 func NewRouteService(db *gorm.DB, key uuid.UUID, auths ...*service.AuthRid) *routeService {
