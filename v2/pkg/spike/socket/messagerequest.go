@@ -19,7 +19,10 @@ func (m *WSMessageRequest) Handle(ws WSConnection) broker.Error {
 		ws.SetSessionToken(token)
 	}
 
-	p := PatternFromEndpoint(ws.GetHandlers(), m.SpecificEndpoint())
+	p, brokerErr := PatternFromEndpoint(ws.GetHandlers(), m.SpecificEndpoint())
+	if brokerErr != nil {
+		return brokerErr
+	}
 	call := broker.NewCall(p, m.Data)
 	call.SetToken(ws.GetToken())
 	call.SetProvider(ws.Broker())

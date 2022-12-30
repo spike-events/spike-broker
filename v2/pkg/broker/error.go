@@ -2,6 +2,7 @@ package broker
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 )
 
@@ -73,6 +74,13 @@ func NewInvalidParamsError(msg string) Error {
 	return &errorMessage{
 		MessageStr: msg,
 		Message:    Message{CodeInt: http.StatusBadRequest},
+	}
+}
+
+func NewServiceUnavailableError(endpoint string) Error {
+	return &errorMessage{
+		MessageStr: fmt.Sprintf("service %s unavailable", endpoint),
+		Message:    Message{CodeInt: http.StatusServiceUnavailable},
 	}
 }
 
