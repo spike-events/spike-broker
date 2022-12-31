@@ -6,7 +6,6 @@ import (
 
 	"github.com/gofrs/uuid"
 	"github.com/spike-events/spike-broker/v2/pkg/broker"
-	"github.com/spike-events/spike-broker/v2/pkg/rids"
 	"github.com/spike-events/spike-broker/v2/pkg/service"
 )
 
@@ -38,12 +37,12 @@ func (s *serviceImpl) StartService() error {
 		return fmt.Errorf("API not initialized")
 	}
 
-	s.broker.SetHandler(s.opts.Service.Rid().Name(), func(p rids.Pattern, payload []byte, replyEndpoint string) {
-		call, err := broker.NewCallFromJSON(payload, p, replyEndpoint)
+	s.broker.SetHandler(s.opts.Service.Rid().Name(), func(sub broker.Subscription, payload []byte, replyEndpoint string) {
+		call, err := broker.NewCallFromJSON(payload, sub.Resource, replyEndpoint)
 		if err == nil {
 			call.SetProvider(s.broker)
 			access := broker.NewAccess(call)
-			handleRequest(p, call, access, *s.opts)
+			handleRequest(sub, call, access, *s.opts)
 		}
 	})
 

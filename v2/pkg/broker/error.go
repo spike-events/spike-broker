@@ -10,7 +10,7 @@ import (
 type Error interface {
 	Error() string
 	Code() int
-	Data() interface{}
+	Data() RawData
 	ToJSON() []byte
 }
 
@@ -19,7 +19,7 @@ type errorMessage struct {
 	MessageStr string `json:"message,omitempty"`
 }
 
-func (e *errorMessage) Data() interface{} {
+func (e *errorMessage) Data() RawData {
 	return e.DataIface
 }
 
@@ -36,7 +36,7 @@ type RedirectRequest struct {
 }
 
 // ToJSON error request
-func (e errorMessage) ToJSON() []byte {
+func (e *errorMessage) ToJSON() []byte {
 	data, err := json.Marshal(e)
 	if err != nil {
 		panic(err)
@@ -84,7 +84,7 @@ func NewServiceUnavailableError(endpoint string) Error {
 	}
 }
 
-func NewError(msg string, code int, data interface{}) Error {
+func NewError(msg string, code int, data []byte) Error {
 	return &errorMessage{
 		MessageStr: msg,
 		Message: Message{

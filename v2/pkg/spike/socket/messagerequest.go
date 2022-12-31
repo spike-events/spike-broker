@@ -31,19 +31,15 @@ func (m *WSMessageRequest) Handle(ws WSConnection) broker.Error {
 		return broker.ErrorStatusForbidden
 	}
 
-	var response interface{}
+	var response broker.RawData
 	rErr := ws.Broker().Request(p, m.Data, &response, ws.GetToken())
 	if rErr != nil {
 		return rErr
 	}
 
-	data, err := json.Marshal(response)
-	if err != nil {
-		return broker.InternalError(err)
-	}
 	m.Type = WSMessageTypeResponse
-	m.Data = string(data)
-	err = ws.WSConnection().WriteJSON(m)
+	m.Data = json.RawMessage(response)
+	err := ws.WSConnection().WriteJSON(m)
 	if err != nil {
 		return broker.InternalError(err)
 	}
