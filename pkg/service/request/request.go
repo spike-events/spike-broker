@@ -54,7 +54,7 @@ func (a *AccessRequest) AccessGranted() {
 // CallRequest handler
 type CallRequest struct {
 	Params   map[string]string
-	Data     []byte
+	Data     RawData
 	reply    string
 	provider Provider
 
@@ -68,12 +68,12 @@ type CallRequest struct {
 
 // ErrorRequest error request
 type ErrorRequest struct {
-	Message      string          `json:"message,omitempty"`
-	Code         int             `json:"code,omitempty"`
-	Error        error           `json:"error,omitempty"`
-	ErrorMessage string          `json:"errorMessage,omitempty"`
-	Data         json.RawMessage `json:"data,omitempty"`
-	Type         string          `json:"type,omitempty"`
+	Message      string  `json:"message,omitempty"`
+	Code         int     `json:"code,omitempty"`
+	Error        error   `json:"error,omitempty"`
+	ErrorMessage string  `json:"errorMessage,omitempty"`
+	Data         RawData `json:"data,omitempty"`
+	Type         string  `json:"type,omitempty"`
 }
 
 type RedirectRequest struct {
@@ -116,7 +116,7 @@ func (e *ErrorRequest) Parse(payload []byte) error {
 }
 
 // ToJSON error request
-func (e ErrorRequest) ToJSON() []byte {
+func (e *ErrorRequest) ToJSON() []byte {
 	data, err := json.Marshal(e)
 	if err != nil {
 		panic(err)
@@ -153,17 +153,18 @@ func NewRequest(data interface{}) *CallRequest {
 }
 
 // CloneRequest clone request
-func (c CallRequest) CloneRequest(data interface{}) *CallRequest {
+func (c *CallRequest) CloneRequest(data interface{}) *CallRequest {
+	newC := *c
 	switch data.(type) {
 	case []byte:
 		panic("invalid data")
 	}
 	var err error
-	c.Data, err = json.Marshal(data)
+	newC.Data, err = json.Marshal(data)
 	if err != nil {
 		panic(err)
 	}
-	return &c
+	return &newC
 }
 
 // PathParam retorna parametro map string
