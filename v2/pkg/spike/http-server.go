@@ -154,6 +154,15 @@ func (h *httpServer) httpSetup(wsPrefix string) {
 	// Register routes
 	handlers := make([]rids.Pattern, 0)
 	for _, resource := range h.opts.Resources {
+		resource.Name()
+		h.opts.Broker.SetHandler(resource.Name(), func(sub broker.Subscription, payload []byte, replyEndpoint string) {
+			call, err := broker.NewCallFromJSON(payload, sub.Resource, replyEndpoint)
+			if err == nil {
+				call.SetProvider(h.opts.Broker)
+				access := broker.NewAccess(call)
+				handleWSRequest(sub, call, access, h.opts)
+			}
+		})
 		rHandlers := rids.Patterns(resource)
 		handlers = append(handlers, rHandlers...)
 		for _, ptr := range rHandlers {
@@ -234,28 +243,19 @@ func (h *httpServer) httpHandler(p rids.Pattern, w http.ResponseWriter, r *http.
 		return
 	}
 
-	data, binaryResult := parsedResponse.Data().([]byte)
-	if binaryResult {
-		var dataURL dataurl.DataURL
-		err = json.Unmarshal(data, &dataURL)
-		if err == nil && dataURL.ContentType() != "" && len(dataURL.Data) > 0 {
-			w.Header().Set("Content-Type", dataURL.ContentType())
-			w.Header().Set("ETag", fmt.Sprintf("%x", sha256.Sum256(dataURL.Data)))
-			if len(dataURL.Params) > 0 {
-				if filename, ok := dataURL.Params["filename"]; ok {
-					w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=\"%s\"", filename))
-				}
+	data = parsedResponse.Data()
+	var dataURL dataurl.DataURL
+	err = json.Unmarshal(data, &dataURL)
+	if err == nil && dataURL.ContentType() != "" && len(dataURL.Data) > 0 {
+		w.Header().Set("Content-Type", dataURL.ContentType())
+		w.Header().Set("ETag", fmt.Sprintf("%x", sha256.Sum256(dataURL.Data)))
+		if len(dataURL.Params) > 0 {
+			if filename, ok := dataURL.Params["filename"]; ok {
+				w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=\"%s\"", filename))
 			}
-			w.WriteHeader(http.StatusOK)
-			w.Write(dataURL.Data)
-			return
 		}
-	}
-
-	data, err = json.Marshal(parsedResponse.Data())
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		w.WriteHeader(http.StatusOK)
+		w.Write(dataURL.Data)
 		return
 	}
 

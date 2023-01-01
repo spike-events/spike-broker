@@ -14,7 +14,7 @@ func (t *WSMessageToken) Handle(ws WSConnection) broker.Error {
 		return broker.ErrorInvalidParams
 	}
 
-	token, valid := ws.Authenticator().ValidateToken(t.Token)
+	token, valid := ws.Authenticator().ValidateToken([]byte(t.Token))
 	if !valid {
 		return broker.ErrorStatusUnauthorized
 	}
@@ -22,7 +22,7 @@ func (t *WSMessageToken) Handle(ws WSConnection) broker.Error {
 	publish := string(ws.GetSessionToken()) == ""
 	ws.SetSessionToken(token)
 	ws.SetSessionID(t.ID)
-	t.Token = token
+	t.Token = string(token)
 	ws.WSConnection().WriteJSON(t)
 	if publish {
 		go ws.Broker().Publish(rids.Spike().EventSocketConnected(), ws, ws.GetSessionToken())

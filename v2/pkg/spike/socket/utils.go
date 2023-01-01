@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/spike-events/spike-broker/v2/pkg/broker"
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
 	spikeutils "github.com/spike-events/spike-broker/v2/pkg/spike-utils"
 )
 
-func PatternFromEndpoint(patterns []rids.Pattern, specificEndpoint string) rids.Pattern {
+func PatternFromEndpoint(patterns []rids.Pattern, specificEndpoint string) (rids.Pattern, broker.Error) {
 	for _, pattern := range patterns {
 		patternParts := strings.Split(pattern.EndpointName(), ".")
 		queryParts := strings.Split(specificEndpoint, "?")
@@ -23,7 +24,11 @@ func PatternFromEndpoint(patterns []rids.Pattern, specificEndpoint string) rids.
 		for i := range patternParts {
 			if strings.HasPrefix(patternParts[i], "$") {
 				key := patternParts[i][1:]
-				params[key] = spikeutils.Stringer(endpointParts[i])
+				if endpointParts[i] == "*" {
+					params[key] = spikeutils.Stringer(patternParts[i])
+				} else {
+					params[key] = spikeutils.Stringer(endpointParts[i])
+				}
 				continue
 			}
 			if patternParts[i] != endpointParts[i] {
@@ -39,8 +44,8 @@ func PatternFromEndpoint(patterns []rids.Pattern, specificEndpoint string) rids.
 			if len(queryParts) > 1 {
 				patternClone.Query(queryParts[1])
 			}
-			return patternClone
+			return patternClone, nil
 		}
 	}
-	return nil
+	return nil, broker.NewServiceUnavailableError(specificEndpoint)
 }

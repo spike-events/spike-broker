@@ -16,7 +16,7 @@ type Subscription struct {
 	Validators []AccessHandler
 }
 
-type ServiceHandler func(p rids.Pattern, payload []byte, replyEndpoint string)
+type ServiceHandler func(sub Subscription, payload []byte, replyEndpoint string)
 
 // Provider interface implements a multiservice communication broker that allows to listen and execute requests to the
 // any Service announced on Spike network

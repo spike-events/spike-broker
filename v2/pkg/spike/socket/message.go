@@ -1,7 +1,6 @@
 package socket
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/spike-events/spike-broker/v2/pkg/broker"
@@ -26,13 +25,13 @@ type WSMessageHandler interface {
 }
 
 type WSMessage struct {
-	ID       string          `json:"id"`
-	Type     WSMessageType   `json:"type"`
-	Endpoint string          `json:"endpoint,omitempty"`
-	Method   string          `json:"method,omitempty"`
-	Token    json.RawMessage `json:"token,omitempty"`
-	Query    string          `json:"query,omitempty"`
-	Data     interface{}     `json:"data,omitempty"`
+	ID       string        `json:"id"`
+	Type     WSMessageType `json:"type"`
+	Endpoint string        `json:"endpoint,omitempty"`
+	Method   string        `json:"method,omitempty"`
+	Token    string        `json:"token,omitempty"`
+	Query    string        `json:"query,omitempty"`
+	Data     interface{}   `json:"data,omitempty"`
 }
 
 func (w *WSMessage) SpecificEndpoint() string {

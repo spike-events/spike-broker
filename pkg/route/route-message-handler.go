@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -24,7 +24,7 @@ func (s *routeService) handler(endpoint rids.EndpointRest, w http.ResponseWriter
 
 	debugLevel := os.Getenv("API_LOG_LEVEL")
 
-	data, err := ioutil.ReadAll(r.Body)
+	data, err := io.ReadAll(r.Body)
 	if err != nil {
 		if debugLevel == "DEBUG" || debugLevel == "ERR" {
 			log.Printf("api: failed to read all body: %v", err)

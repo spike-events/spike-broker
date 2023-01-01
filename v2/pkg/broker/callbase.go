@@ -134,7 +134,11 @@ func (c *callBase) OK(result ...interface{}) {
 
 	// Make sure we always marshal pointer structures
 	result[0] = spikeutils.PointerFromInterface(result[0])
-	success.DataIface = result[0]
+	encoded, err := json.Marshal(result[0])
+	if err != nil {
+		panic(err)
+	}
+	success.DataIface = encoded
 	data, err := json.Marshal(&success)
 	if err != nil {
 		panic(err)

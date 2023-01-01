@@ -160,26 +160,39 @@ func (s *Provider) printDebug(str string, params ...interface{}) {
 	}
 }
 
-func (s *Provider) subscribe(pattern rids.Pattern) (string, string, chan *nats.Msg) {
+func (s *Provider) subscribe(sub broker.Subscription) (string, string, chan *nats.Msg) {
 	msgs := make(chan *nats.Msg, MaxChans)
 
 	go func() {
-		p := pattern
-		for msg := range msgs {
-			go s.handler[pattern.Service()](p, msg.Data, msg.Reply)
+		p := sub.Resource
+		for msgCopy := range msgs {
+			msg := msgCopy
+			go func() {
+				if msg == nil {
+					panic("nats: invalid message")
+				}
+				if s.handler == nil {
+					panic("nats: undefined handler")
+				}
+				if h, ok := s.handler[sub.Resource.Service()]; ok {
+					h(sub, msg.Data, msg.Reply)
+				} else {
+					panic("nats: invalid handler")
+				}
+			}()
 		}
 		s.printDebug("nats: channel closed on endpoint %s", p.EndpointName())
 	}()
 
-	s.printDebug("nats: subscribed on %s\n", pattern.EndpointName())
-	return pattern.EndpointName(), pattern.EndpointName(), msgs
+	s.printDebug("nats: subscribed on %s\n", sub.Resource.EndpointName())
+	return sub.Resource.EndpointName(), sub.Resource.EndpointName(), msgs
 }
 
 // Subscribe endpoint nats in balanced mode
 func (s *Provider) Subscribe(sub broker.Subscription) (interface{}, error) {
 	m.Lock()
 	defer m.Unlock()
-	subj, grp, msgs := s.subscribe(sub.Resource)
+	subj, grp, msgs := s.subscribe(sub)
 	reg, _ := regexp.Compile("\\$[^.]+")
 	subj = reg.ReplaceAllString(subj, "*")
 
@@ -200,7 +213,7 @@ func (s *Provider) SubscribeAll(sub broker.Subscription) (interface{}, error) {
 	defer m.Unlock()
 	bus := s.requestConn()
 	defer s.releaseConn(bus)
-	subj, _, ch := s.subscribe(sub.Resource)
+	subj, _, ch := s.subscribe(sub)
 	reg, _ := regexp.Compile("\\$[^.]+")
 	subj = reg.ReplaceAllString(subj, "*")
 	return bus.ChanSubscribe(subj, ch)
@@ -215,7 +228,7 @@ func (s *Provider) Monitor(monitoringGroup string, sub broker.Subscription) (fun
 	specific = reg.ReplaceAllString(specific, "*")
 	bus := s.requestConn()
 	defer s.releaseConn(bus)
-	_, _, msgs := s.subscribe(sub.Resource)
+	_, _, msgs := s.subscribe(sub)
 	natsSub, err := bus.ChanQueueSubscribe(specific, monitoringGroup, msgs)
 	if err != nil {
 		return nil, err
@@ -276,12 +289,23 @@ func (s *Provider) Request(p rids.Pattern, payload interface{}, rs interface{}, 
 		return bMsg
 	}
 
-	if rs != nil {
-		data, err := json.Marshal(bMsg.Data())
-		if err != nil {
-			return broker.InternalError(err)
+	switch rs.(type) {
+	case nil:
+		return nil
+	case *[]byte:
+		if err := json.Unmarshal(bMsg.Data(), rs); err != nil {
+			tmp := []byte(bMsg.Data())
+			tmp, err = json.Marshal(tmp)
+			if err != nil {
+				return broker.InternalError(err)
+			}
+			if err = json.Unmarshal(tmp, rs); err != nil {
+				return broker.InternalError(err)
+			}
+			return nil
 		}
-		if err = json.Unmarshal(data, rs); err != nil {
+	default:
+		if err := json.Unmarshal(bMsg.Data(), rs); err != nil {
 			return broker.InternalError(err)
 		}
 	}
