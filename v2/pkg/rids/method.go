@@ -19,30 +19,28 @@ type Method interface {
 }
 
 type method struct {
-	LabelValue       string                  `json:"labelValue"`
-	ServiceName      string                  `json:"serviceName"`
-	ServiceLabel     string                  `json:"serviceLabel"`
-	HttpPrefix       string                  `json:"httpPrefix"`
-	HttpMethod       string                  `json:"httpMethod"`
-	GenericEndpoint  string                  `json:"genericEndpoint"`
-	SpecificEndpoint string                  `json:"specificEndpoint"`
-	Params           map[string]fmt.Stringer `json:"params"`
-	IsPublic         bool                    `json:"isPublic"`
-	Version          int                     `json:"version"`
+	LabelValue      string                  `json:"labelValue"`
+	ServiceName     string                  `json:"serviceName"`
+	ServiceLabel    string                  `json:"serviceLabel"`
+	HttpPrefix      string                  `json:"httpPrefix"`
+	HttpMethod      string                  `json:"httpMethod"`
+	GenericEndpoint string                  `json:"genericEndpoint"`
+	Params          map[string]fmt.Stringer `json:"params"`
+	IsPublic        bool                    `json:"isPublic"`
+	Version         int                     `json:"version"`
 }
 
 func (m *method) UnmarshalJSON(data []byte) error {
 	type methodInnerType struct {
-		LabelValue       string            `json:"labelValue"`
-		ServiceName      string            `json:"serviceName"`
-		ServiceLabel     string            `json:"serviceLabel"`
-		HttpPrefix       string            `json:"httpPrefix"`
-		HttpMethod       string            `json:"httpMethod"`
-		GenericEndpoint  string            `json:"genericEndpoint"`
-		SpecificEndpoint string            `json:"specificEndpoint"`
-		Params           map[string]string `json:"params"`
-		IsPublic         bool              `json:"isPublic"`
-		Version          int               `json:"version"`
+		LabelValue      string            `json:"labelValue"`
+		ServiceName     string            `json:"serviceName"`
+		ServiceLabel    string            `json:"serviceLabel"`
+		HttpPrefix      string            `json:"httpPrefix"`
+		HttpMethod      string            `json:"httpMethod"`
+		GenericEndpoint string            `json:"genericEndpoint"`
+		Params          map[string]string `json:"params"`
+		IsPublic        bool              `json:"isPublic"`
+		Version         int               `json:"version"`
 	}
 	var methodInner methodInnerType
 	if err := json.Unmarshal(data, &methodInner); err != nil {
@@ -54,7 +52,6 @@ func (m *method) UnmarshalJSON(data []byte) error {
 	m.HttpPrefix = methodInner.HttpPrefix
 	m.HttpMethod = methodInner.HttpMethod
 	m.GenericEndpoint = methodInner.GenericEndpoint
-	m.SpecificEndpoint = methodInner.SpecificEndpoint
 	m.IsPublic = methodInner.IsPublic
 	m.Version = methodInner.Version
 	m.Params = make(map[string]fmt.Stringer)
@@ -89,15 +86,14 @@ func newMethod(serviceName, serviceLabel, label, httpPrefix, endpoint string, ve
 	}
 
 	return &method{
-		LabelValue:       label,
-		ServiceName:      serviceName,
-		ServiceLabel:     serviceLabel,
-		HttpPrefix:       httpPrefix,
-		HttpMethod:       "",
-		GenericEndpoint:  genericEndpoint,
-		SpecificEndpoint: endpoint,
-		Params:           paramsMap,
-		Version:          version,
+		LabelValue:      label,
+		ServiceName:     serviceName,
+		ServiceLabel:    serviceLabel,
+		HttpPrefix:      httpPrefix,
+		HttpMethod:      "",
+		GenericEndpoint: genericEndpoint,
+		Params:          paramsMap,
+		Version:         version,
 	}
 }
 

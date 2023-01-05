@@ -222,7 +222,7 @@ func (s *Provider) SubscribeAll(sub broker.Subscription) (interface{}, error) {
 // Monitor listens on endpoint nats in balanced mode do not respond. Use it to listen to events without answering them
 func (s *Provider) Monitor(monitoringGroup string, sub broker.Subscription) (func(), error) {
 	m.Lock()
-	m.Unlock()
+	defer m.Unlock()
 	specific := sub.Resource.EndpointNameSpecific()
 	reg, _ := regexp.Compile("\\$[^.]+")
 	specific = reg.ReplaceAllString(specific, "*")
