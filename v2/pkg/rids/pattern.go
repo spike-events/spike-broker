@@ -132,7 +132,18 @@ func (p *pattern) EndpointName() string {
 }
 
 func (p *pattern) EndpointNameSpecific() string {
-	return fmt.Sprintf("%v.%v.%v", p.Service(), p.MethodValue.SpecificEndpoint, p.MethodValue.HttpMethod)
+	endpoint := p.MethodValue.GenericEndpoint
+	epParts := strings.Split(endpoint, ".")
+	for _, epPart := range epParts {
+		if strings.Contains(epPart, "$") && len(epPart) > 1 {
+			paramName := epPart[1:]
+			if param, valid := p.Params()[paramName]; valid && len(param.String()) > 0 {
+				endpoint = strings.Replace(endpoint, epPart, param.String(), 1)
+			}
+		}
+	}
+
+	return fmt.Sprintf("%v.%v.%v", p.Service(), endpoint, p.MethodValue.HttpMethod)
 }
 
 func (p *pattern) SetParams(params map[string]fmt.Stringer) {

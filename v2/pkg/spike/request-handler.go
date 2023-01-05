@@ -20,7 +20,8 @@ func handleRequest(sub broker.Subscription, msg broker.Call, access broker.Acces
 			} else {
 				rErr = broker.InternalError(err)
 			}
-			opts.Service.Logger().Printf("request: panic on handler: %s", p.EndpointNameSpecific())
+			opts.Service.Logger().Printf("request: panic on handler: %s %s", p.EndpointName(),
+				p.EndpointNameSpecific())
 			opts.Service.Logger().Printf("request: panic on handler: %v", r)
 			msg.Error(rErr)
 		}
