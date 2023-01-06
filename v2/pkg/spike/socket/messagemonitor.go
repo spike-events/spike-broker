@@ -2,7 +2,6 @@ package socket
 
 import (
 	"encoding/json"
-	"net/http"
 
 	"github.com/spike-events/spike-broker/v2/pkg/broker"
 )
@@ -63,10 +62,8 @@ func (m *WSMessageMonitor) Handle(ws WSConnection) broker.Error {
 		unsubscribe()
 	}()
 
-	var success broker.Message
-	success.CodeInt = http.StatusOK
 	m.Type = WSMessageTypeResponse
-	m.Data = success
+	m.Data = nil
 	err = ws.WSConnection().WriteJSON(m)
 	if err != nil {
 		return broker.InternalError(err)
