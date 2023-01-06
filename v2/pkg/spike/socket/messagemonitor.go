@@ -65,14 +65,8 @@ func (m *WSMessageMonitor) Handle(ws WSConnection) broker.Error {
 
 	var success broker.Message
 	success.CodeInt = http.StatusOK
-	var response broker.RawData
-	response, err = json.Marshal(&success)
-	if err != nil {
-		return broker.InternalError(err)
-	}
-
 	m.Type = WSMessageTypeResponse
-	m.Data = response
+	m.Data = success
 	err = ws.WSConnection().WriteJSON(m)
 	if err != nil {
 		return broker.InternalError(err)
