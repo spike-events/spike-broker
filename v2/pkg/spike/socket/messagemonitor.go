@@ -40,7 +40,7 @@ func (m *WSMessageMonitor) Handle(ws WSConnection) broker.Error {
 			Endpoint: m.Endpoint,
 			Data:     json.RawMessage(c.RawData()),
 		}
-		err := ws.WSConnection().WriteJSON(wsMsg)
+		err := ws.WriteJSON(wsMsg)
 		if err != nil {
 			c.Error(err)
 			return
@@ -64,7 +64,7 @@ func (m *WSMessageMonitor) Handle(ws WSConnection) broker.Error {
 
 	m.Type = WSMessageTypeResponse
 	m.Data = nil
-	err = ws.WSConnection().WriteJSON(m)
+	err = ws.WriteJSON(m)
 	if err != nil {
 		return broker.InternalError(err)
 	}

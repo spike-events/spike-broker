@@ -23,7 +23,10 @@ func (t *WSMessageToken) Handle(ws WSConnection) broker.Error {
 	ws.SetSessionToken(token)
 	ws.SetSessionID(t.ID)
 	t.Token = string(token)
-	ws.WSConnection().WriteJSON(t)
+	err := ws.WriteJSON(t)
+	if err != nil {
+		return broker.InternalError(err)
+	}
 	if publish {
 		go ws.Broker().Publish(rids.Spike().EventSocketConnected(), ws, ws.GetSessionToken())
 	}

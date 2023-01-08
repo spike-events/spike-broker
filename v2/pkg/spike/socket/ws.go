@@ -49,7 +49,7 @@ func wsHandler(ctx context.Context, c WSConnection) {
 			log.Printf("ws: stack error, %v", r)
 			log.Printf(string(debug.Stack()))
 			log.Printf("ws: context done, disconnecting %s", c.GetID())
-			err := c.WSConnection().Close()
+			err := c.Close()
 			if err != nil {
 				log.Printf("ws: failed to close connection %s: %v", c.GetID(), err)
 			}
@@ -58,14 +58,14 @@ func wsHandler(ctx context.Context, c WSConnection) {
 	go func() {
 		<-ctx.Done()
 		log.Printf("ws: context done, disconnecting %s", c.GetID())
-		err := c.WSConnection().Close()
+		err := c.Close()
 		if err != nil {
 			log.Printf("ws: failed to close connection %s: %v", c.GetID(), err)
 		}
 	}()
 	for {
 		if errorMsg != nil {
-			err := c.WSConnection().WriteJSON(errorMsg)
+			err := c.WriteJSON(errorMsg)
 			if err != nil {
 				log.Printf("ws: failed to send error message on connection %s with data %v: %v", c.GetID(), errorMsg, err)
 			}
@@ -73,7 +73,7 @@ func wsHandler(ctx context.Context, c WSConnection) {
 		}
 
 		var wsMsg WSMessage
-		err := c.WSConnection().ReadJSON(&wsMsg)
+		err := c.ReadJSON(&wsMsg)
 		if err != nil {
 			if _, ok := err.(*websocket.CloseError); ok {
 				log.Printf("ws: closed connection %s", c.GetID())

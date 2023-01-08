@@ -39,7 +39,7 @@ func (m *WSMessageRequest) Handle(ws WSConnection) broker.Error {
 
 	m.Type = WSMessageTypeResponse
 	m.Data = json.RawMessage(response)
-	err := ws.WSConnection().WriteJSON(m)
+	err := ws.WriteJSON(m)
 	if err != nil {
 		return broker.InternalError(err)
 	}

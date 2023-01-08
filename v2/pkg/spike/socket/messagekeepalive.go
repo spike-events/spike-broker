@@ -9,7 +9,7 @@ type WSMessageKeepAlive struct {
 }
 
 func (m *WSMessageKeepAlive) Handle(ws WSConnection) broker.Error {
-	err := ws.WSConnection().WriteJSON(m)
+	err := ws.WriteJSON(m)
 	if err != nil {
 		return broker.ErrorInternalServerError
 	}

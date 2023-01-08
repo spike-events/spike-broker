@@ -3,6 +3,7 @@ package socket
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/gofrs/uuid"
 	"github.com/gorilla/websocket"
@@ -29,13 +30,21 @@ type WSConnection interface {
 	GetHandlers() []rids.Pattern
 	Context() context.Context
 	CancelContext()
-	WSConnection() *websocket.Conn
 	Broker() broker.Provider
 	Authenticator() service.Authenticator
 	Authorizer() service.Authorizer
 	GetSessionToken() broker.RawData
 	SetSessionToken(token broker.RawData)
 	SetSessionID(id string)
+
+	// WriteJSON call WS connection write with locked context
+	WriteJSON(data interface{}) error
+
+	// ReadJSON call WS connection read
+	ReadJSON(data interface{}) error
+
+	// Close call WS connection close
+	Close() error
 }
 
 type wsConnection struct {
@@ -43,11 +52,26 @@ type wsConnection struct {
 	ctx           context.Context
 	cancelCtx     context.CancelFunc
 	ws            *websocket.Conn
+	wsMutexWrite  sync.Mutex
 	provider      broker.Provider
 	authenticator service.Authenticator
 	authorizer    service.Authorizer
 	handlers      []rids.Pattern
 	token         broker.RawData
+}
+
+func (ws *wsConnection) WriteJSON(data interface{}) error {
+	ws.wsMutexWrite.Lock()
+	defer ws.wsMutexWrite.Unlock()
+	return ws.ws.WriteJSON(data)
+}
+
+func (ws *wsConnection) ReadJSON(data interface{}) error {
+	return ws.ws.ReadJSON(data)
+}
+
+func (ws *wsConnection) Close() error {
+	return ws.ws.Close()
 }
 
 func (ws *wsConnection) GetID() fmt.Stringer {
