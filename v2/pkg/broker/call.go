@@ -131,15 +131,6 @@ func (c *call) UnmarshalJSON(data []byte) error {
 func (c *call) ToJSON() json.RawMessage {
 	type callV1Compatible struct {
 		call
-		Data       []byte            `json:"Data"`
-		Params     map[string]string `json:"Params"`
-		TokenV1    string            `json:"Token"`
-		QueryV1    string            `json:"Query"`
-		APIVersion int               `json:"apiVersion"`
-	}
-
-	type callV2Compatible struct {
-		call
 		Params     map[string]string `json:"Params"`
 		TokenV1    string            `json:"Token"`
 		QueryV1    string            `json:"Query"`
@@ -163,28 +154,14 @@ func (c *call) ToJSON() json.RawMessage {
 		}
 	}
 
-	var toSend Call
-	if c.Endpoint().Version() == 1 {
-		toSend = &callV1Compatible{
-			call: call{
-				callBase: c.callBase,
-			},
-			Data:       c.RawData(),
-			Params:     params,
-			TokenV1:    string(c.Token),
-			QueryV1:    queryStr,
-			APIVersion: c.Endpoint().Version(),
-		}
-	} else {
-		toSend = &callV2Compatible{
-			call: call{
-				callBase: c.callBase,
-			},
-			Params:     params,
-			TokenV1:    string(c.Token),
-			QueryV1:    queryStr,
-			APIVersion: c.Endpoint().Version(),
-		}
+	toSend := &callV1Compatible{
+		call: call{
+			callBase: c.callBase,
+		},
+		Params:     params,
+		TokenV1:    string(c.Token),
+		QueryV1:    queryStr,
+		APIVersion: c.Endpoint().Version(),
 	}
 
 	data, err := json.Marshal(toSend)
