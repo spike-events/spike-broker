@@ -112,6 +112,9 @@ func NewNatsProvider(config Config) broker.Provider {
 }
 
 func (s *Provider) SetHandler(service string, handler broker.ServiceHandler) {
+	if _, exists := s.handler[service]; exists {
+		panic("cannot use same broker for HTTP service and the service itself. Please instantiate a new NATS broker for HTTP server")
+	}
 	s.handler[service] = handler
 }
 

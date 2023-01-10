@@ -14,21 +14,23 @@ import (
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
 	"github.com/spike-events/spike-broker/v2/pkg/spike"
 	"github.com/stretchr/testify/suite"
+	"github.com/vincent-petithory/dataurl"
 )
 
 type NatsTest struct {
 	suite.Suite
-	id     uuid.UUID
-	ctx    context.Context
-	spike  spike.APIService
-	http   spike.HttpServer
-	broker broker.Provider
+	id            uuid.UUID
+	ctx           context.Context
+	spike         spike.APIService
+	http          spike.HttpServer
+	serviceBroker broker.Provider
+	httpBroker    broker.Provider
 }
 
 func (s *NatsTest) TearDownSuite() {
 	s.spike.Stop()
 	s.http.Shutdown()
-	s.broker.Close()
+	s.serviceBroker.Close()
 }
 
 func (s *NatsTest) SetupSuite() {
@@ -52,7 +54,7 @@ func (s *NatsTest) SetupSuite() {
 	authorizer := NewAuthorizer()
 
 	// Initialize NATS
-	s.broker = nats.NewNatsProvider(nats.Config{
+	s.serviceBroker = nats.NewNatsProvider(nats.Config{
 		LocalNats:      true,
 		LocalNatsDebug: false,
 		LocalNatsTrace: false,
@@ -60,10 +62,15 @@ func (s *NatsTest) SetupSuite() {
 		Logger:         logger,
 	})
 
+	s.httpBroker = nats.NewNatsProvider(nats.Config{
+		LocalNats: false,
+		Logger:    logger,
+	})
+
 	// Initialize Spike providing Service
 	s.spike = spike.NewAPIService()
 	err = s.spike.RegisterService(spike.Options{
-		Service:       NewServiceTest(s.broker, logger),
+		Service:       NewServiceTest(s.serviceBroker, logger),
 		Authenticator: authenticator,
 		Authorizer:    authorizer,
 		Timeout:       2 * time.Minute,
@@ -80,7 +87,7 @@ func (s *NatsTest) SetupSuite() {
 
 	// Initialize HTTP Server
 	s.http = spike.NewHttpServer(s.ctx, spike.HttpOptions{
-		Broker:        s.broker,
+		Broker:        s.httpBroker,
 		Resources:     []rids.Resource{ServiceTestRid()},
 		Authenticator: authenticator,
 		Authorizer:    authorizer,
@@ -140,6 +147,15 @@ func (s *NatsTest) TestReplyWithTokenAndPayload() {
 	s.Require().Equal("Ok", respPayload["attr2"], "invalid response")
 }
 
+func (s *NatsTest) TestExpectingFile() {
+	var fData []byte
+	err := Request(ServiceTestRid().CallExpectingFile(), nil, &fData, "token-string")
+	s.Require().ErrorIs(err, nil, "error response")
+	f, cErr := dataurl.DecodeString(dataurl.EncodeBytes(fData))
+	s.Require().Nil(cErr, "should have been able to convert to dataURL")
+	s.Require().NotNil(f.Data, "invalid returned data")
+	s.Require().Equal("image/webp", f.ContentType(), "invalid returned type")
+}
 func TestNats(t *testing.T) {
 	suite.Run(t, new(NatsTest))
 }

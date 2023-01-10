@@ -13,7 +13,8 @@ func (a Authorizer) HasPermission(c broker.Call) bool {
 	case ServiceTestRid().TestReply().EndpointName(),
 		ServiceTestRid().FromMock().EndpointName(),
 		ServiceTestRid().CallWithObjPayload().EndpointName(),
-		ServiceTestRid().CallV1().EndpointName():
+		ServiceTestRid().CallV1().EndpointName(),
+		ServiceTestRid().CallExpectingFile().EndpointName():
 		return true
 	}
 	return false

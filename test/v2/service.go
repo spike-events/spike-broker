@@ -3,11 +3,13 @@ package v2
 import (
 	"context"
 	"encoding/json"
+	"os"
 
 	"github.com/gofrs/uuid"
 	"github.com/spike-events/spike-broker/v2/pkg/broker"
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
 	"github.com/spike-events/spike-broker/v2/pkg/service"
+	"github.com/vincent-petithory/dataurl"
 )
 
 type LocalPayload struct {
@@ -64,6 +66,10 @@ func (s *ServiceTest) Handlers() []broker.Subscription {
 		{
 			Resource: ServiceTestRid().CallWithObjPayload(),
 			Handler:  s.callWithObjPayload,
+		},
+		{
+			Resource: ServiceTestRid().CallExpectingFile(),
+			Handler:  s.callExpectingFile,
 		},
 	}
 }
@@ -144,6 +150,16 @@ func (s *ServiceTest) callWithObjPayload(c broker.Call) {
 		return
 	}
 	c.OK(&payload)
+}
+
+func (s *ServiceTest) callExpectingFile(c broker.Call) {
+	f, err := os.ReadFile("th.webp")
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	data := dataurl.New(f, "image/webp", "filename", "linux.webp")
+	c.File(data)
 }
 
 func NewServiceTest(broker broker.Provider, logger service.Logger) service.Service {

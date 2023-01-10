@@ -48,3 +48,7 @@ func (s *serviceTestRid) CallWithObjPayload() rids.Pattern {
 func (s *serviceTestRid) NoHandler() rids.Pattern {
 	return s.NewMethod("Route without handler to test 503 errors on NATS", "invalid").Get()
 }
+
+func (s *serviceTestRid) CallExpectingFile() rids.Pattern {
+	return s.NewMethod("Call and get a file on response", "getFile").Get()
+}

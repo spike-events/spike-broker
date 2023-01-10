@@ -142,6 +142,28 @@ func (u *UnitTest) TestWithObjectPayload() {
 	u.Require().Nil(err, "Should have returned success")
 }
 
+func (u *UnitTest) TestExpectingFile() {
+	t := spike.APITestRequestOrPublish{
+		Pattern:    ServiceTestRid().CallExpectingFile(),
+		Repository: nil,
+		Payload:    nil,
+		Token:      nil,
+		Ok: func(i ...interface{}) {
+			u.Require().NotEmpty(i, "should have a return value")
+			payload, valid := i[0].(*LocalPayload)
+			u.Require().True(valid, "should have been a LocalPayload")
+			u.Require().Equal(payload.Attr1, 10)
+			u.Require().Equal(payload.Attr2, "Ok")
+		},
+		Err: func(i interface{}) {
+			u.FailNow("Should have succeeded")
+		},
+		Mocks: testProvider.Mocks{},
+	}
+	err := u.svc.TestRequestOrPublish(t)
+	u.Require().Nil(err, "Should have returned success")
+}
+
 func TestUnit(t *testing.T) {
 	suite.Run(t, new(UnitTest))
 }
