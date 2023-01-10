@@ -25,7 +25,7 @@ func (a *accessRequest) AccessGranted() {
 }
 
 func NewAccess(p rids.Pattern, payload interface{}, token json.RawMessage, okF func(...interface{}), errF func(interface{})) broker.Access {
-	c := NewCall(p, payload, token, okF, errF)
+	c := NewCall(p, payload, token, okF, errF, nil)
 	return &accessRequest{
 		callRequest: *c.(*callRequest),
 	}

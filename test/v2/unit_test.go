@@ -13,6 +13,7 @@ import (
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
 	"github.com/spike-events/spike-broker/v2/pkg/spike"
 	"github.com/stretchr/testify/suite"
+	"github.com/vincent-petithory/dataurl"
 )
 
 type UnitTest struct {
@@ -154,6 +155,11 @@ func (u *UnitTest) TestExpectingFile() {
 			u.Require().True(valid, "should have been a LocalPayload")
 			u.Require().Equal(payload.Attr1, 10)
 			u.Require().Equal(payload.Attr2, "Ok")
+		},
+		File: func(f *dataurl.DataURL) {
+			u.Require().NotNil(f, "invalid nil file on response")
+			u.Require().NotNil(f.Data, "invalid nil data on response")
+			u.Require().Equal("image/webp", f.ContentType(), "invalid content type")
 		},
 		Err: func(i interface{}) {
 			u.FailNow("Should have succeeded")

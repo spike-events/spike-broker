@@ -17,6 +17,7 @@ type callRequest struct {
 	payload broker.RawData
 	okF     func(...interface{})
 	errF    func(interface{})
+	fileF   func(*dataurl.DataURL)
 }
 
 func (c *callRequest) GetError() broker.Error {
@@ -85,8 +86,10 @@ func (c *callRequest) Timeout(timeout time.Duration) {
 }
 
 func (c *callRequest) File(f *dataurl.DataURL) {
-	//TODO implement me
-	panic("implement me")
+	c.result = nil
+	if c.fileF != nil {
+		c.fileF(f)
+	}
 }
 
 func (c *callRequest) OK(result ...interface{}) {
@@ -140,12 +143,16 @@ func (c *callRequest) SetEndpoint(p rids.Pattern) {
 	panic("implement me")
 }
 
-func NewCall(p rids.Pattern, payload interface{}, token []byte, okF func(...interface{}), errF func(interface{})) broker.Call {
+func NewCall(p rids.Pattern, payload interface{}, token []byte,
+	okF func(...interface{}), errF func(interface{}), fileF func(*dataurl.DataURL)) broker.Call {
 	if okF == nil {
 		okF = func(...interface{}) {}
 	}
 	if errF == nil {
 		errF = func(interface{}) {}
+	}
+	if fileF == nil {
+		fileF = func(*dataurl.DataURL) {}
 	}
 	data, _ := json.Marshal(payload)
 	return &callRequest{
@@ -154,5 +161,6 @@ func NewCall(p rids.Pattern, payload interface{}, token []byte, okF func(...inte
 		payload: data,
 		okF:     okF,
 		errF:    errF,
+		fileF:   fileF,
 	}
 }

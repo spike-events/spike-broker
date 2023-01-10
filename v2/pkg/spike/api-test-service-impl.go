@@ -97,7 +97,7 @@ func (s *testServiceImpl) TestAccess(params APITestAccess) broker.Error {
 
 	s.broker.SetMocks(params.Mocks)
 
-	call := testProvider.NewCall(params.Pattern, params.Payload, params.Token, nil, nil)
+	call := testProvider.NewCall(params.Pattern, params.Payload, params.Token, nil, nil, nil)
 	access := testProvider.NewAccess(params.Pattern, params.Payload, params.Token, nil, nil)
 	handleAccessForTest(params.Pattern, call, access, params.Ok, params.Err, *s.opts)
 	return access.GetError()
@@ -115,7 +115,7 @@ func (s *testServiceImpl) TestRequestOrPublish(params APITestRequestOrPublish) b
 
 	s.broker.SetMocks(params.Mocks)
 
-	call := testProvider.NewCall(params.Pattern, params.Payload, params.Token, params.Ok, params.Err)
+	call := testProvider.NewCall(params.Pattern, params.Payload, params.Token, params.Ok, params.Err, params.File)
 	handleRequestForTest(params.Pattern, call, *s.opts)
 	return call.GetError()
 }

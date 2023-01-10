@@ -6,6 +6,7 @@ import (
 	"github.com/spike-events/spike-broker/v2/pkg/broker"
 	"github.com/spike-events/spike-broker/v2/pkg/broker/providers/testProvider"
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
+	"github.com/vincent-petithory/dataurl"
 )
 
 type APITestRequestOrPublish struct {
@@ -16,6 +17,7 @@ type APITestRequestOrPublish struct {
 	Mocks      testProvider.Mocks
 	Ok         func(...interface{})
 	Err        func(interface{})
+	File       func(f *dataurl.DataURL)
 }
 
 type APITestAccess struct {
