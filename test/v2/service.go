@@ -18,11 +18,20 @@ type LocalPayload struct {
 }
 
 type ServiceTest struct {
-	key    uuid.UUID
-	ctx    context.Context
-	repo   interface{}
-	broker broker.Provider
-	logger service.Logger
+	key          uuid.UUID
+	ctx          context.Context
+	repo         interface{}
+	externalAPIs map[string]interface{}
+	broker       broker.Provider
+	logger       service.Logger
+}
+
+func (s *ServiceTest) SetExternalAPI(api string, implementation interface{}) error {
+	if s.externalAPIs == nil {
+		s.externalAPIs = make(map[string]interface{})
+	}
+	s.externalAPIs[api] = implementation
+	return nil
 }
 
 func (s *ServiceTest) SetRepository(repo interface{}) error {

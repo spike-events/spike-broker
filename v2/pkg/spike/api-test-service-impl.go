@@ -90,11 +90,29 @@ func (s *testServiceImpl) TestAccess(params APITestAccess) broker.Error {
 		return broker.InternalError(fmt.Errorf("API not initialized"))
 	}
 
-	err := s.opts.Service.SetRepository(params.Repository)
-	if err != nil {
-		return broker.InternalError(err)
+	if withRepository, ok := s.opts.Service.(service.WithRepository); ok {
+		var repo interface{}
+		if params.Repository != nil {
+			repo = params.Repository
+		} else if params.Mocks.Repository != nil {
+			repo = params.Repository
+		}
+		err := withRepository.SetRepository(repo)
+		if err != nil {
+			return broker.InternalError(err)
+		}
 	}
 
+	if params.Mocks.ExternalAPIs != nil {
+		if withExternalAPI, ok := s.opts.Service.(service.WithExternalAPI); ok {
+			for api, impl := range params.Mocks.ExternalAPIs {
+				err := withExternalAPI.SetExternalAPI(api, impl)
+				if err != nil {
+					return broker.InternalError(err)
+				}
+			}
+		}
+	}
 	s.broker.SetMocks(params.Mocks)
 
 	call := testProvider.NewCall(params.Pattern, params.Payload, params.Token, nil, nil, nil)
@@ -108,9 +126,28 @@ func (s *testServiceImpl) TestRequestOrPublish(params APITestRequestOrPublish) b
 		return broker.InternalError(fmt.Errorf("API not initialized"))
 	}
 
-	err := s.opts.Service.SetRepository(params.Repository)
-	if err != nil {
-		return broker.InternalError(err)
+	if withRepository, ok := s.opts.Service.(service.WithRepository); ok {
+		var repo interface{}
+		if params.Repository != nil {
+			repo = params.Repository
+		} else if params.Mocks.Repository != nil {
+			repo = params.Repository
+		}
+		err := withRepository.SetRepository(repo)
+		if err != nil {
+			return broker.InternalError(err)
+		}
+	}
+
+	if params.Mocks.ExternalAPIs != nil {
+		if withExternalAPI, ok := s.opts.Service.(service.WithExternalAPI); ok {
+			for api, impl := range params.Mocks.ExternalAPIs {
+				err := withExternalAPI.SetExternalAPI(api, impl)
+				if err != nil {
+					return broker.InternalError(err)
+				}
+			}
+		}
 	}
 
 	s.broker.SetMocks(params.Mocks)

@@ -21,6 +21,8 @@ type Mocks struct {
 	RequestsRaw  map[string]RequestRawMock
 	Publishes    map[string]RequestMock
 	PublishesRaw map[string]RequestRawMock
+	Repository   interface{}
+	ExternalAPIs map[string]interface{}
 }
 
 type Provider interface {

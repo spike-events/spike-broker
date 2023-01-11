@@ -146,7 +146,7 @@ func (u *UnitTest) TestWithObjectPayload() {
 func (u *UnitTest) TestExpectingFile() {
 	t := spike.APITestRequestOrPublish{
 		Pattern:    ServiceTestRid().CallExpectingFile(),
-		Repository: nil,
+		Repository: "dumb-repository",
 		Payload:    nil,
 		Token:      nil,
 		Ok: func(i ...interface{}) {

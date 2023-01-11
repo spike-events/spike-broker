@@ -10,9 +10,6 @@ import (
 
 // Service Interface allows implementing Service code that will be initialized by Spike
 type Service interface {
-	// SetRepository allows Spike to inject another Repository. It must be idempotent.
-	SetRepository(repository interface{}) error
-
 	// Start will be called after all migration, config and handlers setup has been done, expecting it to return without
 	// blocking
 	Start(key uuid.UUID, ctx context.Context) error
@@ -38,4 +35,14 @@ type Service interface {
 
 	// Logger returns the logger to be used by the Service
 	Logger() Logger
+}
+
+type WithRepository interface {
+	// SetRepository allows Spike to inject another Repository. It must be idempotent.
+	SetRepository(repository interface{}) error
+}
+
+type WithExternalAPI interface {
+	// SetExternalAPI allows to define external API implementations to be mocked on tests
+	SetExternalAPI(api string, implementation interface{}) error
 }

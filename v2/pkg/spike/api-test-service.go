@@ -11,7 +11,7 @@ import (
 
 type APITestRequestOrPublish struct {
 	Pattern    rids.Pattern
-	Repository interface{}
+	Repository interface{} // Repository DEPRECATED in favor of Mocks.Repository
 	Payload    interface{}
 	Token      json.RawMessage
 	Mocks      testProvider.Mocks
