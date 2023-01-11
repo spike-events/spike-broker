@@ -152,19 +152,11 @@ func (h *httpServer) Shutdown() error {
 
 func (h *httpServer) httpSetup(wsPrefix string) {
 	// Register routes
-	handlers := make([]rids.Pattern, 0)
+	servicesHandlers := make([]rids.Pattern, 0)
 	for _, resource := range h.opts.Resources {
 		resource.Name()
-		h.opts.Broker.SetHandler(resource.Name(), func(sub broker.Subscription, payload []byte, replyEndpoint string) {
-			call, err := broker.NewCallFromJSON(payload, sub.Resource, replyEndpoint)
-			if err == nil {
-				call.SetProvider(h.opts.Broker)
-				access := broker.NewAccess(call)
-				handleWSRequest(sub, call, access, h.opts)
-			}
-		})
 		rHandlers := rids.Patterns(resource)
-		handlers = append(handlers, rHandlers...)
+		servicesHandlers = append(servicesHandlers, rHandlers...)
 		for _, ptr := range rHandlers {
 			p := ptr
 			endpoint := p.EndpointREST()
@@ -193,7 +185,7 @@ func (h *httpServer) httpSetup(wsPrefix string) {
 	}
 	// TODO: Implement WebSocket handler
 	wsOpts := socket.Options{
-		Handlers:      handlers,
+		Handlers:      servicesHandlers,
 		Broker:        h.opts.Broker,
 		Authenticator: h.opts.Authenticator,
 		Authorizer:    h.opts.Authorizer,

@@ -33,6 +33,7 @@ type WSConnection interface {
 	Broker() broker.Provider
 	Authenticator() service.Authenticator
 	Authorizer() service.Authorizer
+	Logger() service.Logger
 	GetSessionToken() broker.RawData
 	SetSessionToken(token broker.RawData)
 	SetSessionID(id string)
@@ -57,6 +58,7 @@ type wsConnection struct {
 	authenticator service.Authenticator
 	authorizer    service.Authorizer
 	handlers      []rids.Pattern
+	logger        service.Logger
 	token         broker.RawData
 }
 
@@ -109,6 +111,10 @@ func (ws *wsConnection) Authorizer() service.Authorizer {
 	return ws.authorizer
 }
 
+func (ws *wsConnection) Logger() service.Logger {
+	return ws.logger
+}
+
 func (ws *wsConnection) GetSessionToken() broker.RawData {
 	return ws.token
 }
@@ -132,5 +138,6 @@ func newConnection(conn *websocket.Conn, options Options) WSConnection {
 		authenticator: options.Authenticator,
 		authorizer:    options.Authorizer,
 		handlers:      options.Handlers,
+		logger:        options.Logger,
 	}
 }

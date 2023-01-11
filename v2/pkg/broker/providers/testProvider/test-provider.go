@@ -11,6 +11,10 @@ import (
 
 type RequestMock func(p rids.Pattern, payload interface{}, res interface{}, token ...[]byte) broker.Error
 type RequestRawMock func(payload json.RawMessage, overrideTimeout ...time.Duration) (json.RawMessage, broker.Error)
+type Subscription struct {
+	sub     broker.Subscription
+	handler broker.ServiceHandler
+}
 
 type Mocks struct {
 	Requests     map[string]RequestMock
@@ -29,11 +33,8 @@ type testProvider struct {
 
 	mocks Mocks
 
-	subscriptions map[string]broker.Subscription
-	monitors      map[string]map[string]broker.Subscription
-}
-
-func (t *testProvider) SetHandler(_ string, _ broker.ServiceHandler) {
+	subscriptions map[string]Subscription
+	monitors      map[string]map[string]Subscription
 }
 
 func (t *testProvider) SetMocks(mocks Mocks) {
@@ -54,8 +55,8 @@ func NewTestProvider(ctx context.Context) Provider {
 				Publishes:    make(map[string]RequestMock),
 				PublishesRaw: make(map[string]RequestRawMock),
 			},
-			subscriptions: make(map[string]broker.Subscription),
-			monitors:      make(map[string]map[string]broker.Subscription),
+			subscriptions: make(map[string]Subscription),
+			monitors:      make(map[string]map[string]Subscription),
 		}
 	}
 	return testProviderImpl
@@ -107,26 +108,35 @@ func (t *testProvider) Get(p rids.Pattern, rs interface{}, token ...[]byte) brok
 
 func (t *testProvider) Close() {}
 
-func (t *testProvider) subscribe(m map[string]broker.Subscription, s broker.Subscription) {
-	m[s.Resource.EndpointName()] = s
+func (t *testProvider) subscribe(m map[string]Subscription, s Subscription) {
+	m[s.sub.Resource.EndpointName()] = s
 }
 
-func (t *testProvider) Subscribe(s broker.Subscription) (interface{}, error) {
-	t.subscribe(t.subscriptions, s)
+func (t *testProvider) Subscribe(s broker.Subscription, handler broker.ServiceHandler) (interface{}, error) {
+	t.subscribe(t.subscriptions, Subscription{
+		sub:     s,
+		handler: handler,
+	})
 	return t, nil
 }
 
-func (t *testProvider) SubscribeAll(s broker.Subscription) (interface{}, error) {
-	t.subscribe(t.subscriptions, s)
+func (t *testProvider) SubscribeAll(s broker.Subscription, handler broker.ServiceHandler) (interface{}, error) {
+	t.subscribe(t.subscriptions, Subscription{
+		sub:     s,
+		handler: handler,
+	})
 	return t, nil
 }
 
-func (t *testProvider) Monitor(monitoringGroup string, s broker.Subscription) (func(), error) {
+func (t *testProvider) Monitor(monitoringGroup string, s broker.Subscription, handler broker.ServiceHandler) (func(), error) {
 	var ok bool
-	var m map[string]broker.Subscription
+	var m map[string]Subscription
 	if m, ok = t.monitors[monitoringGroup]; !ok {
-		m = make(map[string]broker.Subscription)
+		m = make(map[string]Subscription)
 	}
-	t.subscribe(m, s)
+	t.subscribe(m, Subscription{
+		sub:     s,
+		handler: handler,
+	})
 	return func() {}, nil
 }

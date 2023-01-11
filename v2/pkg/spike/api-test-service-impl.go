@@ -47,7 +47,7 @@ func (s *testServiceImpl) StartService() error {
 	// Initialize Handlers
 	handlers := s.opts.Service.Handlers()
 	for _, h := range handlers {
-		_, err := s.broker.Subscribe(h)
+		_, err := s.broker.Subscribe(h, nil)
 		if err != nil {
 			return err
 		}
@@ -56,7 +56,7 @@ func (s *testServiceImpl) StartService() error {
 	// Initialize Monitors
 	monitos := s.opts.Service.Monitors()
 	for g, m := range monitos {
-		_, err := s.broker.Monitor(g, m)
+		_, err := s.broker.Monitor(g, m, nil)
 		if err != nil {
 			return err
 		}

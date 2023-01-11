@@ -18,23 +18,20 @@ type Subscription struct {
 
 type ServiceHandler func(sub Subscription, payload []byte, replyEndpoint string)
 
-// Provider interface implements a multiservice communication broker that allows to listen and execute requests to the
+// Provider interface implements a multiservice communication broker that allows to listen and execute requests to
 // any Service announced on Spike network
 type Provider interface {
-	// SetHandler sets the Spike handler for arriving messages on specific Service
-	SetHandler(service string, handler ServiceHandler)
-
 	// Close ends the connection to the Provider
 	Close()
 
 	// Subscribe requests the Provider to handle a rids.Resource balancing the requests
-	Subscribe(s Subscription) (interface{}, error)
+	Subscribe(s Subscription, handler ServiceHandler) (interface{}, error)
 
 	// SubscribeAll requests the Provider to handle a rids.Resource at all times
-	SubscribeAll(s Subscription) (interface{}, error)
+	SubscribeAll(s Subscription, handler ServiceHandler) (interface{}, error)
 
 	// Monitor informs the Provider how to handle a rids.Resource event
-	Monitor(monitoringGroup string, s Subscription) (func(), error)
+	Monitor(monitoringGroup string, s Subscription, handler ServiceHandler) (func(), error)
 
 	// Get calls a rids.Resource through the Provider without a paylod
 	Get(p rids.Pattern, rs interface{}, token ...[]byte) Error

@@ -18,6 +18,7 @@ import (
 	"github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
 	"github.com/spike-events/spike-broker/v2/pkg/broker"
+	"github.com/spike-events/spike-broker/v2/pkg/broker/providers"
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
 )
 
@@ -41,8 +42,8 @@ func init() {
 }
 
 type Provider struct {
+	providers.Base
 	config    Config
-	handler   map[string]broker.ServiceHandler
 	debug     bool
 	localNats *server.Server
 }
@@ -79,8 +80,8 @@ func (s *Provider) newNatsBus() (*nats.Conn, error) {
 
 func NewNatsProvider(config Config) broker.Provider {
 	natsConn := &Provider{
-		config:  config,
-		handler: make(map[string]broker.ServiceHandler),
+		Base:   providers.NewBase(),
+		config: config,
 	}
 
 	m.Lock()
@@ -109,13 +110,6 @@ func NewNatsProvider(config Config) broker.Provider {
 	}
 
 	return natsConn
-}
-
-func (s *Provider) SetHandler(service string, handler broker.ServiceHandler) {
-	if _, exists := s.handler[service]; exists {
-		panic("cannot use same broker for HTTP service and the service itself. Please instantiate a new NATS broker for HTTP server")
-	}
-	s.handler[service] = handler
 }
 
 func (s *Provider) Drain() {
@@ -163,10 +157,11 @@ func (s *Provider) printDebug(str string, params ...interface{}) {
 	}
 }
 
-func (s *Provider) subscribe(sub broker.Subscription) (string, string, chan *nats.Msg) {
+func (s *Provider) subscribe(sub broker.Subscription, handler broker.ServiceHandler) (string, string, chan *nats.Msg) {
 	msgs := make(chan *nats.Msg, MaxChans)
 
 	go func() {
+		h := handler
 		p := sub.Resource
 		for msgCopy := range msgs {
 			msg := msgCopy
@@ -174,14 +169,7 @@ func (s *Provider) subscribe(sub broker.Subscription) (string, string, chan *nat
 				if msg == nil {
 					panic("nats: invalid message")
 				}
-				if s.handler == nil {
-					panic("nats: undefined handler")
-				}
-				if h, ok := s.handler[sub.Resource.Service()]; ok {
-					h(sub, msg.Data, msg.Reply)
-				} else {
-					panic("nats: invalid handler")
-				}
+				h(sub, msg.Data, msg.Reply)
 			}()
 		}
 		s.printDebug("nats: channel closed on endpoint %s", p.EndpointName())
@@ -192,10 +180,10 @@ func (s *Provider) subscribe(sub broker.Subscription) (string, string, chan *nat
 }
 
 // Subscribe endpoint nats in balanced mode
-func (s *Provider) Subscribe(sub broker.Subscription) (interface{}, error) {
+func (s *Provider) Subscribe(sub broker.Subscription, handler broker.ServiceHandler) (interface{}, error) {
 	m.Lock()
 	defer m.Unlock()
-	subj, grp, msgs := s.subscribe(sub)
+	subj, grp, msgs := s.subscribe(sub, handler)
 	reg, _ := regexp.Compile("\\$[^.]+")
 	subj = reg.ReplaceAllString(subj, "*")
 
@@ -211,19 +199,19 @@ func (s *Provider) Subscribe(sub broker.Subscription) (interface{}, error) {
 }
 
 // SubscribeAll endpoint nats in non balanced mode (receives all messages)
-func (s *Provider) SubscribeAll(sub broker.Subscription) (interface{}, error) {
+func (s *Provider) SubscribeAll(sub broker.Subscription, handler broker.ServiceHandler) (interface{}, error) {
 	m.Lock()
 	defer m.Unlock()
 	bus := s.requestConn()
 	defer s.releaseConn(bus)
-	subj, _, ch := s.subscribe(sub)
+	subj, _, ch := s.subscribe(sub, handler)
 	reg, _ := regexp.Compile("\\$[^.]+")
 	subj = reg.ReplaceAllString(subj, "*")
 	return bus.ChanSubscribe(subj, ch)
 }
 
 // Monitor listens on endpoint nats in balanced mode do not respond. Use it to listen to events without answering them
-func (s *Provider) Monitor(monitoringGroup string, sub broker.Subscription) (func(), error) {
+func (s *Provider) Monitor(monitoringGroup string, sub broker.Subscription, handler broker.ServiceHandler) (func(), error) {
 	m.Lock()
 	defer m.Unlock()
 	specific := sub.Resource.EndpointNameSpecific()
@@ -231,7 +219,7 @@ func (s *Provider) Monitor(monitoringGroup string, sub broker.Subscription) (fun
 	specific = reg.ReplaceAllString(specific, "*")
 	bus := s.requestConn()
 	defer s.releaseConn(bus)
-	_, _, msgs := s.subscribe(sub)
+	_, _, msgs := s.subscribe(sub, handler)
 	natsSub, err := bus.ChanQueueSubscribe(specific, monitoringGroup, msgs)
 	if err != nil {
 		return nil, err

@@ -52,7 +52,10 @@ func (m *WSMessageMonitor) Handle(ws WSConnection) broker.Error {
 		Resource: p,
 		Handler:  localHandler,
 	}
-	unsubscribe, err := ws.Broker().Monitor(ws.GetID().String(), sub)
+	unsubscribe, err := ws.Broker().Monitor(ws.GetID().String(), sub,
+		func(sub broker.Subscription, payload []byte, replyEndpoint string) {
+			handleWSRequest(ws, sub, payload, replyEndpoint)
+		})
 	if err != nil {
 		return broker.InternalError(err)
 	}

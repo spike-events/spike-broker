@@ -58,33 +58,3 @@ func handleRequest(sub broker.Subscription, msg broker.Call, access broker.Acces
 
 	sub.Handler(msg)
 }
-
-func handleWSRequest(sub broker.Subscription, msg broker.Call, access broker.Access, opts HttpOptions) {
-	p := sub.Resource
-
-	defer func() {
-		if r := recover(); r != nil {
-			var rErr broker.Error
-			err, ok := r.(error)
-			if !ok {
-				rErr = broker.InternalError(fmt.Errorf("request: %s: %v", p.EndpointName(), r))
-			} else {
-				rErr = broker.InternalError(err)
-			}
-			opts.Logger.Printf("http: panic on handler: %v", r)
-			msg.Error(rErr)
-		}
-	}()
-
-	if len(sub.Validators) > 0 {
-		for _, validator := range sub.Validators {
-			validator(access)
-			if err := access.GetError(); err != nil {
-				msg.Error(err)
-				return
-			}
-		}
-	}
-
-	sub.Handler(msg)
-}

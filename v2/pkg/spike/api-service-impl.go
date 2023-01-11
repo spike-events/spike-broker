@@ -37,14 +37,14 @@ func (s *serviceImpl) StartService() error {
 		return fmt.Errorf("API not initialized")
 	}
 
-	s.broker.SetHandler(s.opts.Service.Rid().Name(), func(sub broker.Subscription, payload []byte, replyEndpoint string) {
+	handler := func(sub broker.Subscription, payload []byte, replyEndpoint string) {
 		call, err := broker.NewCallFromJSON(payload, sub.Resource, replyEndpoint)
 		if err == nil {
 			call.SetProvider(s.broker)
 			access := broker.NewAccess(call)
 			handleRequest(sub, call, access, *s.opts)
 		}
-	})
+	}
 
 	if s.opts.Service == nil {
 		return fmt.Errorf("no service specified on options")
@@ -63,14 +63,14 @@ func (s *serviceImpl) StartService() error {
 	}
 
 	for _, sub := range s.opts.Service.Handlers() {
-		if _, err := s.broker.Subscribe(sub); err != nil {
+		if _, err := s.broker.Subscribe(sub, handler); err != nil {
 			return err
 		}
 	}
 
 	if s.opts.Service.Monitors() != nil {
 		for group, sub := range s.opts.Service.Monitors() {
-			if _, err := s.broker.Monitor(group, sub); err != nil {
+			if _, err := s.broker.Monitor(group, sub, handler); err != nil {
 				return err
 			}
 		}
