@@ -6,7 +6,7 @@ import (
 	"github.com/spike-events/spike-broker/v2/pkg/broker"
 )
 
-func handleWSRequest(ws WSConnection, sub broker.Subscription, payload []byte, replyEndpoint string) {
+func handleWSEvent(ws WSConnection, sub broker.Subscription, payload []byte, replyEndpoint string) {
 	msg, err := broker.NewCallFromJSON(payload, sub.Resource, replyEndpoint)
 	if err == nil {
 		msg.SetProvider(ws.Broker())
