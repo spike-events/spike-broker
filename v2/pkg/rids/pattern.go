@@ -3,10 +3,23 @@ package rids
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/hetiansu5/urlquery"
 	spike_utils "github.com/spike-events/spike-broker/v2/pkg/spike-utils"
+)
+
+type MethodType string
+
+const (
+	GET      MethodType = http.MethodGet
+	POST     MethodType = http.MethodPost
+	PUT      MethodType = http.MethodPut
+	PATCH    MethodType = http.MethodPatch
+	DELETE   MethodType = http.MethodDelete
+	INTERNAL MethodType = "INTERNAL"
+	EVENT    MethodType = "EVENT"
 )
 
 // Pattern interface for building up endpoints
@@ -14,7 +27,7 @@ type Pattern interface {
 	Public() bool
 	Query(q interface{}) Pattern
 	Service() string
-	Method() string
+	Method() MethodType
 	Params() map[string]fmt.Stringer
 	EndpointREST() string
 	EndpointName() string
@@ -44,6 +57,17 @@ func NewPatternFromV1(endpoint string, params map[string]string) (Pattern, error
 		paramsV2 = append(paramsV2, spike_utils.Stringer(params[i]))
 	}
 	m := newMethod(serviceName, "", "", "", path, 1, paramsV2...)
+	return newPattern(m), nil
+}
+
+func NewPatternFromString(endpoint string) (Pattern, error) {
+	epParts := strings.Split(endpoint, ".")
+	if len(epParts) < 2 {
+		return nil, fmt.Errorf("pattern: invalid endpoint: %s", endpoint)
+	}
+	serviceName := epParts[0]
+	path := strings.Join(epParts[1:], ".")
+	m := newMethod(serviceName, "", "", "", path, 2)
 	return newPattern(m), nil
 }
 
@@ -93,7 +117,7 @@ func (p *pattern) Service() string {
 	return p.MethodValue.ServiceName
 }
 
-func (p *pattern) Method() string {
+func (p *pattern) Method() MethodType {
 	return p.MethodValue.HttpMethod
 }
 

@@ -10,6 +10,8 @@ import (
 type Resource interface {
 	Name() string
 	WSPrefix() string
+	ValidateMonitor() Pattern
+	ValidatePublish() Pattern
 }
 
 // Base rid
@@ -40,6 +42,18 @@ func NewRid(name, label, httpPrefix string, version ...int) Base {
 		httpPrefix: httpPrefix,
 		version:    ver,
 	}
+}
+
+// ValidateMonitor is a resource exported for all services that implement events. This resource is used to validate if
+// the client trying to monitor an event can actually do that.
+func (b *Base) ValidateMonitor() Pattern {
+	return b.NewMethod("Validate monitor", "validateMonitor").Internal()
+}
+
+// ValidatePublish is a resource exported for all services that implement events. This resource is used to validate if
+// the client trying to publish an event can actually do that.
+func (b *Base) ValidatePublish() Pattern {
+	return b.NewMethod("Validate monitor", "validatePublish").Internal()
 }
 
 func (b *Base) NewMethod(label, endpoint string, params ...fmt.Stringer) Method {

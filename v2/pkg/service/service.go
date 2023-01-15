@@ -21,9 +21,6 @@ type Service interface {
 	// Handlers must return all Subscription resources that will be handled by the Service
 	Handlers() []broker.Subscription
 
-	// Monitors must return all Subscription that will handler events on the specified key group
-	Monitors() map[string]broker.Subscription
-
 	// Key returns the Service unique instance key
 	Key() uuid.UUID
 
@@ -35,6 +32,16 @@ type Service interface {
 
 	// Logger returns the logger to be used by the Service
 	Logger() Logger
+}
+
+type WithMonitors interface {
+	// Monitors must return all Subscription that will handler events on the specified key group
+	Monitors() map[string]broker.Subscription
+}
+
+type WithEvents interface {
+	// Events returns all events this service may trigger
+	Events() []broker.Event
 }
 
 type WithRepository interface {

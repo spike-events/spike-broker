@@ -169,15 +169,15 @@ func (h *httpServer) httpSetup(wsPrefix string) {
 			}
 			h.opts.Logger.Printf("%s -> %s", p.Method(), endpoint)
 			switch p.Method() {
-			case http.MethodGet:
+			case rids.GET:
 				h.router.Get(endpoint, httpHandler)
-			case http.MethodPost:
+			case rids.POST:
 				h.router.Post(endpoint, httpHandler)
-			case http.MethodPut:
+			case rids.PUT:
 				h.router.Put(endpoint, httpHandler)
-			case http.MethodPatch:
+			case rids.PATCH:
 				h.router.Patch(endpoint, httpHandler)
-			case http.MethodDelete:
+			case rids.DELETE:
 				h.router.Delete(endpoint, httpHandler)
 			}
 
@@ -220,24 +220,18 @@ func (h *httpServer) httpHandler(p rids.Pattern, w http.ResponseWriter, r *http.
 	}
 
 	p = p.Clone()
-	call := broker.NewHTTPCall(p, token, data, params, r.Form.Encode())
-	result, rErr := h.opts.Broker.RequestRaw(p.EndpointName(), call.ToJSON())
+	p.SetParams(params)
+	p.Query(r.Form.Encode())
+	var result broker.RawData
+	rErr := h.opts.Broker.Request(p, data, &result, token)
 	if rErr != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("%v", rErr)))
+		w.WriteHeader(rErr.Code())
+		w.Write(rErr.ToJSON())
 		return
 	}
 
-	parsedResponse := broker.NewMessageFromJSON(result)
-	if parsedResponse != nil && parsedResponse.Error() != "" {
-		w.WriteHeader(parsedResponse.Code())
-		w.Write(parsedResponse.ToJSON())
-		return
-	}
-
-	data = parsedResponse.Data()
 	var dataURL dataurl.DataURL
-	err = json.Unmarshal(data, &dataURL)
+	err = json.Unmarshal(result, &dataURL)
 	if err == nil && dataURL.ContentType() != "" && len(dataURL.Data) > 0 {
 		w.Header().Set("Content-Type", dataURL.ContentType())
 		w.Header().Set("ETag", fmt.Sprintf("%x", sha256.Sum256(dataURL.Data)))
@@ -252,5 +246,5 @@ func (h *httpServer) httpHandler(p rids.Pattern, w http.ResponseWriter, r *http.
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write(data)
+	w.Write(result)
 }

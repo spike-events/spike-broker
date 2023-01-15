@@ -2,6 +2,7 @@ package v2
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"os"
 	"testing"
@@ -10,7 +11,6 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/spike-events/spike-broker/v2/pkg/broker"
 	"github.com/spike-events/spike-broker/v2/pkg/broker/providers/testProvider"
-	"github.com/spike-events/spike-broker/v2/pkg/rids"
 	"github.com/spike-events/spike-broker/v2/pkg/spike"
 	"github.com/stretchr/testify/suite"
 	"github.com/vincent-petithory/dataurl"
@@ -90,11 +90,11 @@ func (u *UnitTest) TestFailReplyNoToken() {
 }
 
 func (u *UnitTest) TestFromMock() {
-	testReplyMock := func(p rids.Pattern, payload interface{}, res interface{}, token ...[]byte) broker.Error {
-		id, converted := payload.(uuid.UUID)
-		u.Require().True(converted)
-		*res.(*uuid.UUID) = id
-		return nil
+	testReplyMock := func(c broker.Call) {
+		var id uuid.UUID
+		err := json.Unmarshal(c.RawData(), &id)
+		u.Require().Nil(err, "invalid payload providaded")
+		c.OK(id)
 	}
 
 	t := spike.APITestRequestOrPublish{

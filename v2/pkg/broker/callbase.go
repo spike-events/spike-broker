@@ -93,7 +93,7 @@ func (c *callBase) File(f *dataurl.DataURL) {
 	if err != nil {
 		panic(err)
 	}
-	err = c.provider.PublishRaw(c.ReplyStr, data)
+	err = c.provider.Reply(c.ReplyStr, data)
 }
 
 func (c *callBase) OK(result ...interface{}) {
@@ -109,7 +109,7 @@ func (c *callBase) OK(result ...interface{}) {
 		if err != nil {
 			panic(err)
 		}
-		c.provider.PublishRaw(c.ReplyStr, data) // FIXME: Log or return error
+		c.provider.Reply(c.ReplyStr, data) // FIXME: Log or return error
 		return
 	}
 
@@ -120,7 +120,7 @@ func (c *callBase) OK(result ...interface{}) {
 		if err != nil {
 			panic(err)
 		}
-		c.provider.PublishRaw(c.ReplyStr, data) // FIXME: Log or return error
+		c.provider.Reply(c.ReplyStr, data) // FIXME: Log or return error
 		return
 	case []byte:
 		success.DataIface = result[0].([]byte)
@@ -128,7 +128,7 @@ func (c *callBase) OK(result ...interface{}) {
 		if err != nil {
 			panic(err)
 		}
-		c.provider.PublishRaw(c.ReplyStr, data) // FIXME: Log or return error
+		c.provider.Reply(c.ReplyStr, data) // FIXME: Log or return error
 		return
 	}
 
@@ -143,7 +143,7 @@ func (c *callBase) OK(result ...interface{}) {
 	if err != nil {
 		panic(err)
 	}
-	c.provider.PublishRaw(c.ReplyStr, data) // FIXME: Log or return error
+	c.provider.Reply(c.ReplyStr, data) // FIXME: Log or return error
 }
 
 func (c *callBase) GetError() Error {
@@ -176,7 +176,7 @@ func (c *callBase) Timeout(timeout time.Duration) {
 		timeout = 100 * time.Millisecond
 	}
 
-	c.provider.PublishRaw(c.ReplyStr, []byte(fmt.Sprintf("timeout:%d", int(timeout)))) // FIXME: Log or return error
+	c.provider.Reply(c.ReplyStr, []byte(fmt.Sprintf("timeout:%d", int(timeout)))) // FIXME: Log or return error
 }
 
 // Error result
@@ -185,7 +185,7 @@ func (c *callBase) error(err Error) {
 		return
 	}
 
-	c.provider.PublishRaw(c.ReplyStr, err.ToJSON()) // FIXME: Log or return error
+	c.provider.Reply(c.ReplyStr, err.ToJSON()) // FIXME: Log or return error
 }
 
 func (c *callBase) ParseQuery(q interface{}) error {

@@ -92,7 +92,7 @@ func (c *callV1) OK(result ...interface{}) {
 		if err != nil {
 			panic(err)
 		}
-		c.provider.PublishRaw(c.ReplyStr, data)
+		c.provider.Reply(c.ReplyStr, data)
 		return
 	}
 
@@ -103,7 +103,7 @@ func (c *callV1) OK(result ...interface{}) {
 		if err != nil {
 			panic(err)
 		}
-		c.provider.PublishRaw(c.ReplyStr, data)
+		c.provider.Reply(c.ReplyStr, data)
 		return
 	case []byte:
 		success.DataIface = result[0].([]byte)
@@ -111,7 +111,7 @@ func (c *callV1) OK(result ...interface{}) {
 		if err != nil {
 			panic(err)
 		}
-		c.provider.PublishRaw(c.ReplyStr, data)
+		c.provider.Reply(c.ReplyStr, data)
 		return
 	}
 
@@ -126,5 +126,5 @@ func (c *callV1) OK(result ...interface{}) {
 	if err != nil {
 		panic(err)
 	}
-	c.provider.PublishRaw(c.Reply(), data)
+	c.provider.Reply(c.Reply(), data)
 }

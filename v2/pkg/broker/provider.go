@@ -1,9 +1,6 @@
 package broker
 
 import (
-	"encoding/json"
-	"time"
-
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
 )
 
@@ -16,6 +13,13 @@ type Subscription struct {
 	Validators []AccessHandler
 }
 
+// Event is used to declare Service events and their validators
+type Event struct {
+	Resource          rids.Pattern
+	PublishValidators []AccessHandler
+	MonitorValidators []AccessHandler
+}
+
 type ServiceHandler func(sub Subscription, payload []byte, replyEndpoint string)
 
 // Provider interface implements a multiservice communication broker that allows to listen and execute requests to
@@ -24,14 +28,11 @@ type Provider interface {
 	// Close ends the connection to the Provider
 	Close()
 
-	// Subscribe requests the Provider to handle a rids.Resource balancing the requests
-	Subscribe(s Subscription, handler ServiceHandler) (interface{}, error)
+	// Subscribe requests the Provider to handle a rids.Resource balancing the requests returning unsubscribe function
+	Subscribe(s Subscription, handler ServiceHandler) (func(), Error)
 
-	// SubscribeAll requests the Provider to handle a rids.Resource at all times
-	SubscribeAll(s Subscription, handler ServiceHandler) (interface{}, error)
-
-	// Monitor informs the Provider how to handle a rids.Resource event
-	Monitor(monitoringGroup string, s Subscription, handler ServiceHandler) (func(), error)
+	// Monitor checks if a rids.Resource event can be subscribed by the specified token, subscribe returning unsubscribe function
+	Monitor(monitoringGroup string, s Subscription, handler ServiceHandler, token ...[]byte) (func(), Error)
 
 	// Get calls a rids.Resource through the Provider without a paylod
 	Get(p rids.Pattern, rs interface{}, token ...[]byte) Error
@@ -39,12 +40,9 @@ type Provider interface {
 	// Request calls a rids.Resource through the Provider passing a payload
 	Request(p rids.Pattern, payload interface{}, rs interface{}, token ...[]byte) Error
 
-	// RequestRaw calls a low level subject with a json.RawMessage payload and an optional timeout
-	RequestRaw(subject string, data json.RawMessage, overrideTimeout ...time.Duration) (json.RawMessage, Error)
-
 	// Publish informs the Provider that a rids.Resource event has happened
-	Publish(p rids.Pattern, payload interface{}, token ...[]byte) error
+	Publish(p rids.Pattern, payload interface{}, token ...[]byte) Error
 
-	// PublishRaw publishes a low-level event with a json.RawMessage on a subject
-	PublishRaw(subject string, data json.RawMessage) error
+	// Reply returns the response using a reply endpoint
+	Reply(replyEndpoint string, payload []byte) Error
 }

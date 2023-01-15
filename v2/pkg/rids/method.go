@@ -16,6 +16,7 @@ type Method interface {
 	Patch() Pattern
 	Delete() Pattern
 	Internal() Pattern
+	Event() Pattern
 }
 
 type method struct {
@@ -23,7 +24,7 @@ type method struct {
 	ServiceName     string                  `json:"serviceName"`
 	ServiceLabel    string                  `json:"serviceLabel"`
 	HttpPrefix      string                  `json:"httpPrefix"`
-	HttpMethod      string                  `json:"httpMethod"`
+	HttpMethod      MethodType              `json:"httpMethod"`
 	GenericEndpoint string                  `json:"genericEndpoint"`
 	Params          map[string]fmt.Stringer `json:"params"`
 	IsPublic        bool                    `json:"isPublic"`
@@ -50,7 +51,7 @@ func (m *method) UnmarshalJSON(data []byte) error {
 	m.ServiceName = methodInner.ServiceName
 	m.ServiceLabel = methodInner.ServiceLabel
 	m.HttpPrefix = methodInner.HttpPrefix
-	m.HttpMethod = methodInner.HttpMethod
+	m.HttpMethod = MethodType(methodInner.HttpMethod)
 	m.GenericEndpoint = methodInner.GenericEndpoint
 	m.IsPublic = methodInner.IsPublic
 	m.Version = methodInner.Version
@@ -136,5 +137,9 @@ func (m *method) Delete() Pattern {
 func (m *method) Internal() Pattern {
 	m.IsPublic = false
 	m.HttpMethod = "INTERNAL"
+	return newPattern(m)
+}
+func (m *method) Event() Pattern {
+	m.HttpMethod = "EVENT"
 	return newPattern(m)
 }

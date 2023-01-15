@@ -52,12 +52,12 @@ func (m *WSMessageMonitor) Handle(ws WSConnection) broker.Error {
 		Resource: p,
 		Handler:  localHandler,
 	}
-	unsubscribe, err := ws.Broker().Monitor(ws.GetID().String(), sub,
+	unsubscribe, rErr := ws.Broker().Monitor(ws.GetID().String(), sub,
 		func(sub broker.Subscription, payload []byte, replyEndpoint string) {
 			handleWSEvent(ws, sub, payload, replyEndpoint)
-		})
-	if err != nil {
-		return broker.InternalError(err)
+		}, ws.GetToken())
+	if rErr != nil {
+		return rErr
 	}
 
 	go func() {
@@ -67,7 +67,7 @@ func (m *WSMessageMonitor) Handle(ws WSConnection) broker.Error {
 
 	m.Type = WSMessageTypeResponse
 	m.Data = nil
-	err = ws.WriteJSON(m)
+	err := ws.WriteJSON(m)
 	if err != nil {
 		return broker.InternalError(err)
 	}

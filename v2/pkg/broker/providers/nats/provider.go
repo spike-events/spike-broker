@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math"
-	"net/http"
 	"os"
 	"regexp"
 	"strconv"
@@ -18,8 +16,6 @@ import (
 	"github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
 	"github.com/spike-events/spike-broker/v2/pkg/broker"
-	"github.com/spike-events/spike-broker/v2/pkg/broker/providers"
-	"github.com/spike-events/spike-broker/v2/pkg/rids"
 )
 
 const (
@@ -41,46 +37,8 @@ func init() {
 	}
 }
 
-type Provider struct {
-	providers.Base
-	config    Config
-	debug     bool
-	localNats *server.Server
-}
-
-func (s *Provider) connError(con *nats.Conn, err error) {
-	if err != nil {
-		s.printDebug("nats: disconnected with error: %s", err)
-	}
-}
-
-func (s *Provider) asyncError(con *nats.Conn, sub *nats.Subscription, err error) {
-	if err != nil {
-		log.Printf("nats: async error: %v", err)
-	}
-}
-
-func (s *Provider) newNatsBus() (*nats.Conn, error) {
-	opts := nats.GetDefaultOptions()
-	opts.Url = s.config.NatsURL
-	opts.AllowReconnect = true
-	opts.MaxReconnect = -1
-	opts.PingInterval = 5 * time.Second
-	opts.MaxPingsOut = 3
-	opts.Timeout = s.Timeout()
-	opts.DisconnectedErrCB = s.connError
-	opts.AsyncErrorCB = s.asyncError
-	opts.FlusherTimeout = 3 * time.Second
-	bus, err := opts.Connect()
-	if err != nil {
-		return nil, err
-	}
-	return bus, nil
-}
-
 func NewNatsProvider(config Config) broker.Provider {
 	natsConn := &Provider{
-		Base:   providers.NewBase(),
 		config: config,
 	}
 
@@ -109,21 +67,48 @@ func NewNatsProvider(config Config) broker.Provider {
 		}
 	}
 
-	return natsConn
+	return broker.NewSpecific(natsConn)
 }
 
-func (s *Provider) Drain() {
-	s.printDebug("nats: closing bus")
-	defer s.printDebug("nats: closing bus done")
-	globalConnections.Do(func(busI interface{}) {
-		if bus, ok := busI.(*nats.Conn); ok {
-			bus.Drain()
+type Provider struct {
+	config    Config
+	debug     bool
+	localNats *server.Server
+}
+
+func (s *Provider) SubscribeRaw(sub broker.Subscription, group string, handler broker.ServiceHandler) (func(), broker.Error) {
+	m.Lock()
+	defer m.Unlock()
+	subj, msgs := s.subscribe(sub, handler)
+	reg, _ := regexp.Compile("\\$[^.]+")
+	subj = reg.ReplaceAllString(subj, "*")
+
+	unsubs := make([]func(), 0)
+	for i := 0; i < MaxConns; i++ {
+		bus := s.requestConn()
+		unsub, err := bus.ChanQueueSubscribe(subj, group, msgs)
+		if err != nil {
+			log.Printf("nats: failed to subscribe to %s: %v", subj, err)
 		}
-	})
+		unsubs = append(unsubs, func() { unsub.Unsubscribe() })
+		s.releaseConn(bus)
+	}
+
+	return func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("nats: panic on unsubscribe endpoint %s: %v", subj, r)
+			}
+		}()
+		for _, unsub := range unsubs {
+			unsub()
+		}
+		close(msgs)
+	}, nil
 }
 
 func (s *Provider) Close() {
-	s.Drain()
+	s.drain()
 	s.printDebug("nats: closing bus")
 	defer s.printDebug("nats: closing bus done")
 	globalConnections.Do(func(busI interface{}) {
@@ -138,179 +123,18 @@ func (s *Provider) Close() {
 	}
 }
 
-func (s *Provider) requestConn() *nats.Conn {
-	next := globalConnections.Next()
-	globalConnections = next
-	return next.Value.(*nats.Conn)
-}
-
-func (s *Provider) releaseConn(_ *nats.Conn) {
-}
-
-func (s *Provider) Timeout() time.Duration {
-	return globalTimeout
-}
-
-func (s *Provider) printDebug(str string, params ...interface{}) {
-	if s.debug {
-		log.Printf(str, params...)
-	}
-}
-
-func (s *Provider) subscribe(sub broker.Subscription, handler broker.ServiceHandler) (string, string, chan *nats.Msg) {
-	msgs := make(chan *nats.Msg, MaxChans)
-
-	go func() {
-		h := handler
-		p := sub.Resource
-		for msgCopy := range msgs {
-			msg := msgCopy
-			go func() {
-				if msg == nil {
-					panic("nats: invalid message")
-				}
-				h(sub, msg.Data, msg.Reply)
-			}()
-		}
-		s.printDebug("nats: channel closed on endpoint %s", p.EndpointName())
-	}()
-
-	s.printDebug("nats: subscribed on %s\n", sub.Resource.EndpointName())
-	return sub.Resource.EndpointName(), sub.Resource.EndpointName(), msgs
-}
-
-// Subscribe endpoint nats in balanced mode
-func (s *Provider) Subscribe(sub broker.Subscription, handler broker.ServiceHandler) (interface{}, error) {
-	m.Lock()
-	defer m.Unlock()
-	subj, grp, msgs := s.subscribe(sub, handler)
-	reg, _ := regexp.Compile("\\$[^.]+")
-	subj = reg.ReplaceAllString(subj, "*")
-
-	for i := 0; i < MaxConns; i++ {
-		bus := s.requestConn()
-		_, err := bus.ChanQueueSubscribe(subj, grp, msgs)
-		if err != nil {
-			log.Printf("nats: failed to subscribe to %s: %v", subj, err)
-		}
-		s.releaseConn(bus)
-	}
-	return s, nil
-}
-
-// SubscribeAll endpoint nats in non balanced mode (receives all messages)
-func (s *Provider) SubscribeAll(sub broker.Subscription, handler broker.ServiceHandler) (interface{}, error) {
-	m.Lock()
-	defer m.Unlock()
+func (s *Provider) PublishRaw(subject string, data []byte) broker.Error {
+	s.printDebug("nats: publishing endpoint %s", subject)
 	bus := s.requestConn()
 	defer s.releaseConn(bus)
-	subj, _, ch := s.subscribe(sub, handler)
-	reg, _ := regexp.Compile("\\$[^.]+")
-	subj = reg.ReplaceAllString(subj, "*")
-	return bus.ChanSubscribe(subj, ch)
-}
-
-// Monitor listens on endpoint nats in balanced mode do not respond. Use it to listen to events without answering them
-func (s *Provider) Monitor(monitoringGroup string, sub broker.Subscription, handler broker.ServiceHandler) (func(), error) {
-	m.Lock()
-	defer m.Unlock()
-	specific := sub.Resource.EndpointNameSpecific()
-	reg, _ := regexp.Compile("\\$[^.]+")
-	specific = reg.ReplaceAllString(specific, "*")
-	bus := s.requestConn()
-	defer s.releaseConn(bus)
-	_, _, msgs := s.subscribe(sub, handler)
-	natsSub, err := bus.ChanQueueSubscribe(specific, monitoringGroup, msgs)
+	err := bus.Publish(subject, data)
 	if err != nil {
-		return nil, err
-	}
-	return func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.Printf("nats: panic on unsubscribe endpoint %s: %v", specific, r)
-			}
-		}()
-		s.printDebug("nats: unsubscribing monitor endpoint %s", specific)
-		err := natsSub.Unsubscribe()
-		if err != nil {
-			log.Printf("nats: failed to unsubscribe monitor %s: %v", specific, err)
-		}
-		close(msgs)
-		s.printDebug("nats: successfully unsubscribed monitor endpoint %s", specific)
-	}, nil
-}
-
-// Publish endpoint nats
-func (s *Provider) Publish(p rids.Pattern, payload interface{}, token ...[]byte) error {
-	call := broker.NewCall(p, payload)
-	if len(token) > 0 && len(token[0]) > 0 {
-		call.SetToken(token[0])
-	}
-	bus := s.requestConn()
-	defer s.releaseConn(bus)
-	return bus.Publish(p.EndpointNameSpecific(), call.ToJSON())
-}
-
-// Get endpoint nats
-func (s *Provider) Get(p rids.Pattern, rs interface{}, token ...[]byte) broker.Error {
-	return s.Request(p, nil, rs, token...)
-}
-
-// Request endpoint nats FIXME: This is a general handler
-func (s *Provider) Request(p rids.Pattern, payload interface{}, rs interface{}, token ...[]byte) broker.Error {
-	call := broker.NewCall(p, payload)
-	if len(token) > 0 && len(token[0]) > 0 {
-		call.SetToken(token[0])
-	}
-
-	// Check dependencies
-	result, rErr := s.RequestRaw(p.EndpointName(), call.ToJSON())
-	if rErr != nil {
-		return rErr
-	} else {
-		s.printDebug("nats: request to endpoint %s successful", p.EndpointName())
-	}
-
-	bMsg := broker.NewMessageFromJSON(result)
-	if bMsg == nil {
-		return broker.NewError("invalid payload", http.StatusInternalServerError, result)
-	}
-
-	if math.Abs(float64(bMsg.Code()-http.StatusOK)) >= 100 {
-		return bMsg
-	}
-
-	switch rs.(type) {
-	case nil:
-		return nil
-	case *[]byte:
-		if err := json.Unmarshal(bMsg.Data(), rs); err != nil {
-			tmp := []byte(bMsg.Data())
-			tmp, err = json.Marshal(tmp)
-			if err != nil {
-				return broker.InternalError(err)
-			}
-			if err = json.Unmarshal(tmp, rs); err != nil {
-				return broker.InternalError(err)
-			}
-			return nil
-		}
-	default:
-		if err := json.Unmarshal(bMsg.Data(), rs); err != nil {
-			return broker.InternalError(err)
-		}
+		return broker.InternalError(err)
 	}
 	return nil
 }
 
-func (s *Provider) PublishRaw(subject string, data json.RawMessage) error {
-	s.printDebug("nats: publishing endpoint %s", subject)
-	bus := s.requestConn()
-	defer s.releaseConn(bus)
-	return bus.Publish(subject, data)
-}
-
-func (s *Provider) RequestRaw(subject string, data json.RawMessage, overrideTimeout ...time.Duration) (json.RawMessage, broker.Error) {
+func (s *Provider) RequestRaw(subject string, data []byte, overrideTimeout ...time.Duration) ([]byte, broker.Error) {
 	s.printDebug("nats: requesting endpoint %s", subject)
 	bus := s.requestConn()
 	defer s.releaseConn(bus)
@@ -359,9 +183,83 @@ func (s *Provider) RequestRaw(subject string, data json.RawMessage, overrideTime
 	return rs, nil
 }
 
-/*
-request is the function that sends a message during a Resgate request
-*/
+func (s *Provider) connError(_ *nats.Conn, err error) {
+	if err != nil {
+		s.printDebug("nats: disconnected with error: %s", err)
+	}
+}
+
+func (s *Provider) asyncError(_ *nats.Conn, sub *nats.Subscription, err error) {
+	if err != nil {
+		log.Printf("nats: async error: %v", err)
+	}
+}
+
+func (s *Provider) newNatsBus() (*nats.Conn, error) {
+	opts := nats.GetDefaultOptions()
+	opts.Url = s.config.NatsURL
+	opts.AllowReconnect = true
+	opts.MaxReconnect = -1
+	opts.PingInterval = 5 * time.Second
+	opts.MaxPingsOut = 3
+	opts.Timeout = globalTimeout
+	opts.DisconnectedErrCB = s.connError
+	opts.AsyncErrorCB = s.asyncError
+	opts.FlusherTimeout = 3 * time.Second
+	bus, err := opts.Connect()
+	if err != nil {
+		return nil, err
+	}
+	return bus, nil
+}
+
+func (s *Provider) drain() {
+	s.printDebug("nats: closing bus")
+	defer s.printDebug("nats: closing bus done")
+	globalConnections.Do(func(busI interface{}) {
+		if bus, ok := busI.(*nats.Conn); ok {
+			bus.Drain()
+		}
+	})
+}
+
+func (s *Provider) requestConn() *nats.Conn {
+	next := globalConnections.Next()
+	globalConnections = next
+	return next.Value.(*nats.Conn)
+}
+
+func (s *Provider) releaseConn(_ *nats.Conn) {
+}
+
+func (s *Provider) printDebug(str string, params ...interface{}) {
+	if s.debug {
+		log.Printf(str, params...)
+	}
+}
+
+func (s *Provider) subscribe(sub broker.Subscription, handler broker.ServiceHandler) (string, chan *nats.Msg) {
+	msgs := make(chan *nats.Msg, MaxChans)
+
+	go func() {
+		h := handler
+		p := sub.Resource
+		for msgCopy := range msgs {
+			msg := msgCopy
+			go func() {
+				if msg == nil {
+					panic("nats: invalid message")
+				}
+				h(sub, msg.Data, msg.Reply)
+			}()
+		}
+		s.printDebug("nats: channel closed on endpoint %s", p.EndpointName())
+	}()
+
+	s.printDebug("nats: subscribed on %s\n", sub.Resource.EndpointName())
+	return sub.Resource.EndpointName(), msgs
+}
+
 func (s *Provider) processResponse(subject, inbox string, c chan *nats.Msg, t time.Duration) (json.RawMessage, broker.Error) {
 	s.printDebug("nats: waiting for response on endpoint %s inbox %s", subject, inbox)
 	start := time.Now()
@@ -406,9 +304,7 @@ func (s *Provider) processResponse(subject, inbox string, c chan *nats.Msg, t ti
 	}
 }
 
-/*
-getTimeout is the function that returns the timeout for a Broker request
-*/
+// getTimeout is the function that returns the timeout for a Broker request
 func (s *Provider) getTimeout(respStr string) (*time.Duration, broker.Error) {
 	if strings.HasPrefix(respStr, "timeout:") {
 		respParts := strings.Split(respStr, ":")
@@ -432,32 +328,4 @@ func (s *Provider) getTimeout(respStr string) (*time.Duration, broker.Error) {
 	}
 
 	return nil, nil
-}
-
-var defaultNatsOptions = server.Options{
-	Host:       "127.0.0.1",
-	Port:       4222,
-	MaxPayload: 100 * 1024 * 1024,
-	MaxPending: 100 * 1024 * 1024,
-}
-
-func runServer(opts *server.Options) *server.Server {
-	if opts == nil {
-		opts = &defaultNatsOptions
-	}
-	s, err := server.NewServer(opts)
-	if err != nil {
-		panic(err)
-	}
-
-	s.ConfigureLogger()
-
-	// Run server in Go routine.
-	go s.Start()
-
-	// Wait for accept loop(s) to be started
-	if !s.ReadyForConnections(10 * time.Second) {
-		panic("Unable to start Broker Server in Go Routine")
-	}
-	return s
 }

@@ -18,7 +18,7 @@ func Request(p rids.Pattern, param interface{}, rs interface{}, token ...string)
 
 	data, _ := json.Marshal(param)
 	payload := bytes.NewReader(data)
-	req, err := http.NewRequest(p.Method(), endpoint, payload)
+	req, err := http.NewRequest(string(p.Method()), endpoint, payload)
 	if err != nil {
 		return broker.InternalError(err)
 

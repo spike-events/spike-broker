@@ -37,5 +37,5 @@ func (a *accessRequest) AccessGranted() {
 }
 
 func (a *accessRequest) OK(_ ...interface{}) {
-
+	a.err = nil
 }
