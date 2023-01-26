@@ -220,7 +220,7 @@ func (h *httpServer) httpHandler(p rids.Pattern, w http.ResponseWriter, r *http.
 	}
 
 	p = p.Clone()
-	call := broker.NewHTTPCall(p, token, data, params, r.Form.Encode())
+	call := broker.NewHTTPCall(p, token, data, params, r.URL.Query().Encode())
 	result, rErr := h.opts.Broker.RequestRaw(p.EndpointName(), call.ToJSON())
 	if rErr != nil {
 		w.WriteHeader(http.StatusInternalServerError)
