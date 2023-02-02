@@ -221,7 +221,7 @@ func (h *httpServer) httpHandler(p rids.Pattern, w http.ResponseWriter, r *http.
 
 	p = p.Clone()
 	p.SetParams(params)
-	p.Query(r.Form.Encode())
+	p.Query(r.URL.Query().Encode())
 	var result broker.RawData
 	rErr := h.opts.Broker.Request(p, data, &result, token)
 	if rErr != nil {
