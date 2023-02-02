@@ -42,7 +42,7 @@ func (s *specificProviderBase) Monitor(monitoringGroup string, sub Subscription,
 		if err != nil {
 			return nil, InternalError(err)
 		}
-		p, err := rids.NewPatternFromString(fmt.Sprintf("%s.validateMonitor", sub.Resource.Service()))
+		p, err := rids.NewPatternFromString(fmt.Sprintf("%s.validateMonitor", sub.Resource.Service()), rids.INTERNAL)
 		if err != nil {
 			return nil, InternalError(err)
 		}
@@ -125,7 +125,7 @@ func (s *specificProviderBase) Publish(p rids.Pattern, payload interface{}, toke
 	if err != nil {
 		return InternalError(err)
 	}
-	vp, err := rids.NewPatternFromString(fmt.Sprintf("%s.validateMonitor", p.Service()))
+	vp, err := rids.NewPatternFromString(fmt.Sprintf("%s.validatePublish", p.Service()), rids.INTERNAL)
 	if err != nil {
 		return InternalError(err)
 	}

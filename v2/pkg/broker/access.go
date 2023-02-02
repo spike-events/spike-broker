@@ -1,12 +1,35 @@
 package broker
 
+import (
+	"encoding/json"
+	"time"
+
+	"github.com/spike-events/spike-broker/v2/pkg/rids"
+)
+
 // AccessHandler is a function that validates request's specific situations
 type AccessHandler func(a Access)
 
 type Access interface {
-	Call
-	AccessDenied()
+	RawToken() []byte
+	RawData() []byte
+	Reply() string
+	Provider() Provider
+	Endpoint() rids.Pattern
+
+	PathParam(key string) string
+	ParseQuery(q interface{}) error
+
+	ToJSON() json.RawMessage
+	Timeout(timeout time.Duration)
+
+	AccessDenied(err ...Error)
 	AccessGranted()
+
+	GetError() Error
+
+	SetToken(token []byte)
+	SetProvider(provider Provider)
 }
 
 func NewAccess(callMsg Call) Access {
@@ -28,14 +51,14 @@ type accessRequest struct {
 	call
 }
 
-func (a *accessRequest) AccessDenied() {
-	a.err = ErrorStatusForbidden
+func (a *accessRequest) AccessDenied(err ...Error) {
+	if len(err) > 0 {
+		a.Error(err[0])
+		return
+	}
+	a.Error(ErrorAccessDenied)
 }
 
 func (a *accessRequest) AccessGranted() {
-	a.err = nil
-}
-
-func (a *accessRequest) OK(_ ...interface{}) {
-	a.err = nil
+	a.call.OK()
 }

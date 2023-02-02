@@ -19,7 +19,7 @@ func handleAccessForTest(p rids.Pattern, msg broker.Call, access broker.Access, 
 				rErr = broker.InternalError(err)
 			}
 			opts.Service.Logger().Printf("nats: panic on handler: %v", r)
-			access.Error(rErr)
+			access.AccessDenied(rErr)
 		}
 	}()
 
@@ -34,7 +34,7 @@ func handleAccessForTest(p rids.Pattern, msg broker.Call, access broker.Access, 
 	}
 
 	if !found {
-		access.Error(broker.ErrorServiceUnavailable)
+		access.AccessDenied(broker.ErrorServiceUnavailable)
 		return
 	}
 

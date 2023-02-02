@@ -55,11 +55,13 @@ func (s *testServiceImpl) StartService() error {
 
 	// Initialize Monitors
 	if withMonitors, ok := s.opts.Service.(service.WithMonitors); ok {
-		monitos := withMonitors.Monitors()
-		for g, m := range monitos {
-			_, err := s.broker.Monitor(g, m, nil)
-			if err != nil {
-				return err
+		monitors := withMonitors.Monitors()
+		for g, ms := range monitors {
+			for _, m := range ms {
+				_, err := s.broker.Monitor(g, m, nil)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}

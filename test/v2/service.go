@@ -83,8 +83,36 @@ func (s *ServiceTest) Handlers() []broker.Subscription {
 	}
 }
 
-func (s *ServiceTest) Monitors() map[string]broker.Subscription {
-	return nil
+func (s *ServiceTest) Monitors() map[string][]broker.Subscription {
+	return map[string][]broker.Subscription{
+		s.Rid().Name(): {
+			{
+				Resource: ServiceTestRid().EventOneTest(),
+				Handler:  s.handleEventOne,
+			},
+			{
+				Resource: ServiceTestRid().EventTwoTest(),
+				Handler:  s.handleEventTwo,
+			},
+		},
+	}
+}
+
+func (s *ServiceTest) Events() []broker.Event {
+	return []broker.Event{
+		{
+			Resource: ServiceTestRid().EventOneTest(),
+			PublishValidators: []broker.AccessHandler{
+				s.validatePublishEventOne,
+			},
+			MonitorValidators: []broker.AccessHandler{
+				s.validateMonitorEventOne,
+			},
+		},
+		{
+			Resource: ServiceTestRid().EventTwoTest(),
+		},
+	}
 }
 
 func (s *ServiceTest) Key() uuid.UUID {
@@ -108,7 +136,17 @@ func (s *ServiceTest) validateReply(a broker.Access) {
 		a.AccessDenied()
 		return
 	}
-	a.OK()
+	a.AccessGranted()
+}
+
+func (s *ServiceTest) validatePublishEventOne(a broker.Access) {
+	s.logger.Printf("validated access for publishing event one")
+	a.AccessGranted()
+}
+
+func (s *ServiceTest) validateMonitorEventOne(a broker.Access) {
+	s.logger.Printf("validated access for monitoring event one")
+	a.AccessGranted()
 }
 
 func (s *ServiceTest) reply(c broker.Call) {
@@ -169,6 +207,16 @@ func (s *ServiceTest) callExpectingFile(c broker.Call) {
 	}
 	data := dataurl.New(f, "image/webp", "filename", "linux.webp")
 	c.File(data)
+}
+
+func (s *ServiceTest) handleEventOne(c broker.Call) {
+	s.logger.Printf("event one called")
+	c.OK()
+}
+
+func (s *ServiceTest) handleEventTwo(c broker.Call) {
+	s.logger.Printf("event two called")
+	c.OK()
 }
 
 func NewServiceTest(broker broker.Provider, logger service.Logger) service.Service {

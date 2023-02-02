@@ -60,7 +60,7 @@ func NewPatternFromV1(endpoint string, params map[string]string) (Pattern, error
 	return newPattern(m), nil
 }
 
-func NewPatternFromString(endpoint string) (Pattern, error) {
+func NewPatternFromString(endpoint string, method MethodType) (Pattern, error) {
 	epParts := strings.Split(endpoint, ".")
 	if len(epParts) < 2 {
 		return nil, fmt.Errorf("pattern: invalid endpoint: %s", endpoint)
@@ -68,7 +68,24 @@ func NewPatternFromString(endpoint string) (Pattern, error) {
 	serviceName := epParts[0]
 	path := strings.Join(epParts[1:], ".")
 	m := newMethod(serviceName, "", "", "", path, 2)
-	return newPattern(m), nil
+	switch method {
+	case GET:
+		return m.Get(), nil
+	case DELETE:
+		return m.Delete(), nil
+	case PATCH:
+		return m.Patch(), nil
+	case PUT:
+		return m.Put(), nil
+	case POST:
+		return m.Post(), nil
+	case INTERNAL:
+		return m.Internal(), nil
+	case EVENT:
+		return m.Event(), nil
+	}
+
+	panic("pattern: invalid method type")
 }
 
 func UnmarshalPattern(data json.RawMessage) (Pattern, error) {

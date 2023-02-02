@@ -36,7 +36,7 @@ type Service interface {
 
 type WithMonitors interface {
 	// Monitors must return all Subscription that will handler events on the specified key group
-	Monitors() map[string]broker.Subscription
+	Monitors() map[string][]broker.Subscription
 }
 
 type WithEvents interface {

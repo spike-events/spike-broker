@@ -2,7 +2,6 @@ package spike
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/gofrs/uuid"
@@ -73,11 +72,13 @@ func (s *serviceImpl) StartService() error {
 
 	if withMonitors, ok := s.opts.Service.(service.WithMonitors); ok && withMonitors.Monitors() != nil {
 		s.monitorSubs = make([]func(), 0)
-		for group, sub := range withMonitors.Monitors() {
-			if unsubscribe, err := s.broker.Monitor(group, sub, handler); err == nil {
-				s.monitorSubs = append(s.monitorSubs, unsubscribe)
-			} else {
-				return err
+		for group, subs := range withMonitors.Monitors() {
+			for _, sub := range subs {
+				if unsubscribe, err := s.broker.Monitor(group, sub, handler); err == nil {
+					s.monitorSubs = append(s.monitorSubs, unsubscribe)
+				} else {
+					return err
+				}
 			}
 		}
 	}
@@ -96,6 +97,22 @@ func (s *serviceImpl) StartService() error {
 			}
 		}
 		_, err := s.broker.Subscribe(monitorValidateSub, eventHandlerForValidation)
+		if err != nil {
+			return err
+		}
+
+		// We also need to create a handler to check if Publish Validators allow publishing.
+		publishValidateSub := broker.Subscription{
+			Resource: s.opts.Service.Rid().ValidatePublish(),
+		}
+		eventHandlerForValidation = func(sub broker.Subscription, payload []byte, replyEndpoint string) {
+			call, err := broker.NewCallFromJSON(payload, sub.Resource, replyEndpoint)
+			if err == nil {
+				call.SetProvider(s.broker)
+				s.validatePublish(broker.NewAccess(call))
+			}
+		}
+		_, err = s.broker.Subscribe(publishValidateSub, eventHandlerForValidation)
 		if err != nil {
 			return err
 		}
@@ -124,16 +141,15 @@ func (s *serviceImpl) Stop() error {
 }
 
 func (s *serviceImpl) validateMonitor(access broker.Access) {
-	var p rids.Pattern
-	err := json.Unmarshal(access.RawData(), &p)
+	p, err := rids.UnmarshalPattern(access.RawData())
 	if err != nil {
-		access.Error(broker.ErrorInvalidParams, fmt.Sprintf("Invalid rids.Pattern on payload: %s", err))
+		access.AccessDenied(broker.InternalError(fmt.Errorf("invalid rids.Pattern on payload: %s", err)))
 		return
 	}
 
 	withEvents, ok := s.opts.Service.(service.WithEvents)
 	if !ok {
-		access.Error(broker.ErrorInternalServerError, "Service does not declare events")
+		access.AccessDenied(broker.InternalError(fmt.Errorf("service does not declare events")))
 		return
 	}
 
@@ -156,5 +172,40 @@ func (s *serviceImpl) validateMonitor(access broker.Access) {
 		}
 	}
 
-	access.Error(broker.ErrorInvalidParams, fmt.Sprintf("Endpoint %s not declared on Events arrays", p.EndpointName()))
+	access.AccessDenied(broker.InternalError(fmt.Errorf("endpoint %s not declared on Events arrays", p.EndpointName())))
+}
+
+func (s *serviceImpl) validatePublish(access broker.Access) {
+	p, err := rids.UnmarshalPattern(access.RawData())
+	if err != nil {
+		access.AccessDenied(broker.InternalError(fmt.Errorf("invalid rids.Pattern on payload: %s", err)))
+		return
+	}
+
+	withEvents, ok := s.opts.Service.(service.WithEvents)
+	if !ok {
+		access.AccessDenied(broker.InternalError(fmt.Errorf("service does not declare events")))
+		return
+	}
+
+	for _, event := range withEvents.Events() {
+		if event.Resource.EndpointName() == p.EndpointName() {
+			if len(event.PublishValidators) == 0 {
+				access.AccessGranted()
+				return
+			}
+
+			for _, validator := range event.PublishValidators {
+				validator(access)
+				if access.GetError() != nil {
+					// Test failed and message sent
+					return
+				}
+			}
+			// All validators executed without error
+			return
+		}
+	}
+
+	access.AccessDenied(broker.InternalError(fmt.Errorf("endpoint %s not declared on Events arrays", p.EndpointName())))
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/spike-events/spike-broker/v2/pkg/broker/providers/nats"
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
 	"github.com/spike-events/spike-broker/v2/pkg/spike"
+	spikeutils "github.com/spike-events/spike-broker/v2/pkg/spike-utils"
 	"github.com/stretchr/testify/suite"
 	"github.com/vincent-petithory/dataurl"
 )
@@ -156,6 +157,13 @@ func (s *NatsTest) TestExpectingFile() {
 	s.Require().NotNil(f.Data, "invalid returned data")
 	s.Require().Equal("image/webp", f.ContentType(), "invalid returned type")
 }
+
+func (s *NatsTest) TestEventOne() {
+	err := s.serviceBroker.Publish(ServiceTestRid().EventOneTest(spikeutils.Stringer("EventOneValue")),
+		nil, nil, []byte("token-string"))
+	s.Require().Nil(err, "return should be nil")
+}
+
 func TestNats(t *testing.T) {
 	suite.Run(t, new(NatsTest))
 }

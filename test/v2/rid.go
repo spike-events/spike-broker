@@ -52,3 +52,11 @@ func (s *serviceTestRid) NoHandler() rids.Pattern {
 func (s *serviceTestRid) CallExpectingFile() rids.Pattern {
 	return s.NewMethod("Call and get a file on response", "getFile").Get()
 }
+
+func (s *serviceTestRid) EventOneTest(param ...fmt.Stringer) rids.Pattern {
+	return s.NewMethod("Event to be dispatched in test no 1", "event.$Param.one", param...).Event()
+}
+
+func (s *serviceTestRid) EventTwoTest(param ...fmt.Stringer) rids.Pattern {
+	return s.NewMethod("Event to be dispatched in test no 2", "event.$Param.two", param...).Event()
+}
