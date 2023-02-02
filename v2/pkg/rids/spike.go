@@ -14,9 +14,9 @@ func Spike() *spike {
 }
 
 func (r *spike) EventSocketConnected() Pattern {
-	return r.NewMethod("User has IsPublic through Socket channel", "socket.connected").Internal()
+	return r.NewMethod("User has IsPublic through Socket channel", "socket.connected").Event()
 }
 
 func (r *spike) EventSocketDisconnected(id ...fmt.Stringer) Pattern {
-	return r.NewMethod("User has disconnected from Socket channel", "socket.disconnected.$Id", id...).Internal()
+	return r.NewMethod("User has disconnected from Socket channel", "socket.disconnected.$Id", id...).Event()
 }

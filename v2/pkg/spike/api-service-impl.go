@@ -93,7 +93,13 @@ func (s *serviceImpl) StartService() error {
 			call, err := broker.NewCallFromJSON(payload, sub.Resource, replyEndpoint)
 			if err == nil {
 				call.SetProvider(s.broker)
-				s.validateMonitor(broker.NewAccess(call))
+				a := broker.NewAccess(call)
+				s.validateMonitor(a)
+				if err = a.GetError(); err != nil {
+					call.Error(err)
+					return
+				}
+				call.OK()
 			}
 		}
 		_, err := s.broker.Subscribe(monitorValidateSub, eventHandlerForValidation)
@@ -109,7 +115,13 @@ func (s *serviceImpl) StartService() error {
 			call, err := broker.NewCallFromJSON(payload, sub.Resource, replyEndpoint)
 			if err == nil {
 				call.SetProvider(s.broker)
-				s.validatePublish(broker.NewAccess(call))
+				a := broker.NewAccess(call)
+				s.validatePublish(a)
+				if err = a.GetError(); err != nil {
+					call.Error(err)
+					return
+				}
+				call.OK()
 			}
 		}
 		_, err = s.broker.Subscribe(publishValidateSub, eventHandlerForValidation)

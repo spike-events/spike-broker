@@ -47,7 +47,8 @@ func (s *specificProviderBase) Monitor(monitoringGroup string, sub Subscription,
 			return nil, InternalError(err)
 		}
 		rErr := s.Request(p, subEncoded, nil, token...)
-		if rErr != nil {
+		if rErr != nil && rErr.Code() != ErrorServiceUnavailable.Code() {
+			// FIXME: Ignore Service Unavailable (compatible with V1)
 			return nil, rErr
 		}
 	}
@@ -120,18 +121,21 @@ func (s *specificProviderBase) Publish(p rids.Pattern, payload interface{}, toke
 		return InternalError(fmt.Errorf("invalid RID, can only publish on Event Methods"))
 	}
 
-	// Validate the request on remote service
-	subEncoded, err := json.Marshal(p)
-	if err != nil {
-		return InternalError(err)
-	}
-	vp, err := rids.NewPatternFromString(fmt.Sprintf("%s.validatePublish", p.Service()), rids.INTERNAL)
-	if err != nil {
-		return InternalError(err)
-	}
-	rErr := s.Request(vp, subEncoded, nil, token...)
-	if rErr != nil {
-		return rErr
+	// Validate the request on remote service when there's a token
+	if len(token) > 0 {
+		subEncoded, err := json.Marshal(p)
+		if err != nil {
+			return InternalError(err)
+		}
+		vp, err := rids.NewPatternFromString(fmt.Sprintf("%s.validatePublish", p.Service()), rids.INTERNAL)
+		if err != nil {
+			return InternalError(err)
+		}
+		rErr := s.Request(vp, subEncoded, nil, token...)
+		if rErr != nil && rErr.Code() != ErrorServiceUnavailable.Code() {
+			// FIXME: Ignore Service Unavailable (compatible with V1)
+			return rErr
+		}
 	}
 
 	return s.impl.PublishRaw(p.EndpointNameSpecific(), c.ToJSON())

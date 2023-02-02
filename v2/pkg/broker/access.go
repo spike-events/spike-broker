@@ -53,12 +53,12 @@ type accessRequest struct {
 
 func (a *accessRequest) AccessDenied(err ...Error) {
 	if len(err) > 0 {
-		a.Error(err[0])
+		a.err = err[0]
 		return
 	}
-	a.Error(ErrorAccessDenied)
+	a.err = ErrorAccessDenied
 }
 
 func (a *accessRequest) AccessGranted() {
-	a.call.OK()
+	a.err = nil
 }
