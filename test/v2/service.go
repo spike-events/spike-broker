@@ -54,6 +54,10 @@ func (s *ServiceTest) Stop() chan bool {
 func (s *ServiceTest) Handlers() []broker.Subscription {
 	return []broker.Subscription{
 		{
+			Resource: ServiceTestRid().RootEP(),
+			Handler:  s.rootRID,
+		},
+		{
 			Resource:   ServiceTestRid().TestReply(),
 			Handler:    s.reply,
 			Validators: []broker.AccessHandler{s.validateReply},
@@ -109,6 +113,17 @@ func (s *ServiceTest) validateReply(a broker.Access) {
 		return
 	}
 	a.OK()
+}
+
+func (s *ServiceTest) rootRID(c broker.Call) {
+	s.logger.Printf("accessed root RID")
+	c.OK(struct {
+		Field string
+		value int
+	}{
+		Field: "field",
+		value: 10,
+	})
 }
 
 func (s *ServiceTest) reply(c broker.Call) {

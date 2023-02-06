@@ -21,6 +21,10 @@ func ServiceTestRid() *serviceTestRid {
 	return serviceTestRidImpl
 }
 
+func (s *serviceTestRid) RootEP() rids.Pattern {
+	return s.NewMethod("Can use root RID", "").Get()
+}
+
 func (s *serviceTestRid) TestReply(id ...fmt.Stringer) rids.Pattern {
 	return s.NewMethod("Returns the ID received", "reply.$ID", id...).Get()
 }

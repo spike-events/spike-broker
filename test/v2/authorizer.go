@@ -14,7 +14,8 @@ func (a Authorizer) HasPermission(c broker.Call) bool {
 		ServiceTestRid().FromMock().EndpointName(),
 		ServiceTestRid().CallWithObjPayload().EndpointName(),
 		ServiceTestRid().CallV1().EndpointName(),
-		ServiceTestRid().CallExpectingFile().EndpointName():
+		ServiceTestRid().CallExpectingFile().EndpointName(),
+		ServiceTestRid().RootEP().EndpointName():
 		return true
 	}
 	return false
