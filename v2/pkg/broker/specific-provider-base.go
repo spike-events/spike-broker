@@ -37,19 +37,25 @@ func (s *specificProviderBase) Monitor(monitoringGroup string, sub Subscription,
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	if len(token) > 0 {
-		subEncoded, err := json.Marshal(sub.Resource)
-		if err != nil {
-			return nil, InternalError(err)
+	if sub.Resource.Version() > 1 {
+		if sub.Resource.Method() != rids.EVENT {
+			return nil, InternalError(fmt.Errorf("invalid RID, can only monitor Event Methods"))
 		}
-		p, err := rids.NewPatternFromString(fmt.Sprintf("%s.validateMonitor", sub.Resource.Service()), rids.INTERNAL)
-		if err != nil {
-			return nil, InternalError(err)
-		}
-		rErr := s.Request(p, subEncoded, nil, token...)
-		if rErr != nil && rErr.Code() != ErrorServiceUnavailable.Code() {
-			// FIXME: Ignore Service Unavailable (compatible with V1)
-			return nil, rErr
+
+		if len(token) > 0 {
+			subEncoded, err := json.Marshal(sub.Resource)
+			if err != nil {
+				return nil, InternalError(err)
+			}
+			p, err := rids.NewPatternFromString(fmt.Sprintf("%s.validateMonitor", sub.Resource.Service()), rids.INTERNAL)
+			if err != nil {
+				return nil, InternalError(err)
+			}
+			rErr := s.Request(p, subEncoded, nil, token...)
+			if rErr != nil && rErr.Code() != ErrorServiceUnavailable.Code() {
+				// FIXME: Ignore Service Unavailable (compatible with V1)
+				return nil, rErr
+			}
 		}
 	}
 	return s.impl.SubscribeRaw(sub, monitoringGroup, handler)
@@ -116,25 +122,29 @@ func (s *specificProviderBase) Publish(p rids.Pattern, payload interface{}, toke
 		callMetaData.SetToken(token[0])
 	}
 
-	// We must check if the token has permission to publish
-	if p.Method() != rids.EVENT {
-		return InternalError(fmt.Errorf("invalid RID, can only publish on Event Methods"))
-	}
+	// When publishing on V1 calls we simply ignore all validations
+	if p.Version() > 1 {
 
-	// Validate the request on remote service when there's a token
-	if len(token) > 0 {
-		subEncoded, err := json.Marshal(p)
-		if err != nil {
-			return InternalError(err)
+		// We must check if the token has permission to publish
+		if p.Method() != rids.EVENT {
+			return InternalError(fmt.Errorf("invalid RID, can only publish on Event Methods"))
 		}
-		vp, err := rids.NewPatternFromString(fmt.Sprintf("%s.validatePublish", p.Service()), rids.INTERNAL)
-		if err != nil {
-			return InternalError(err)
-		}
-		rErr := s.Request(vp, subEncoded, nil, token...)
-		if rErr != nil && rErr.Code() != ErrorServiceUnavailable.Code() {
-			// FIXME: Ignore Service Unavailable (compatible with V1)
-			return rErr
+
+		// Validate the request on remote service when there's a token
+		if len(token) > 0 {
+			subEncoded, err := json.Marshal(p)
+			if err != nil {
+				return InternalError(err)
+			}
+			vp, err := rids.NewPatternFromString(fmt.Sprintf("%s.validatePublish", p.Service()), rids.INTERNAL)
+			if err != nil {
+				return InternalError(err)
+			}
+			rErr := s.Request(vp, subEncoded, nil, token...)
+			if rErr != nil && rErr.Code() != ErrorServiceUnavailable.Code() {
+				// FIXME: Ignore Service Unavailable (compatible with V1)
+				return rErr
+			}
 		}
 	}
 
