@@ -137,19 +137,17 @@ func (c *callRequest) OK(result ...interface{}) {
 		switch result[0].(type) {
 		case string:
 			success.DataIface = []byte(result[0].(string))
-			return
 		case []byte:
 			success.DataIface = result[0].([]byte)
-			return
+		default:
+			// Make sure we always marshal pointer structures
+			result[0] = spikeutils.PointerFromInterface(result[0])
+			encoded, err := json.Marshal(result[0])
+			if err != nil {
+				panic(err)
+			}
+			success.DataIface = encoded
 		}
-
-		// Make sure we always marshal pointer structures
-		result[0] = spikeutils.PointerFromInterface(result[0])
-		encoded, err := json.Marshal(result[0])
-		if err != nil {
-			panic(err)
-		}
-		success.DataIface = encoded
 	}
 	c.result = success
 }
