@@ -2,6 +2,8 @@ package broker
 
 import (
 	"time"
+
+	"github.com/spike-events/spike-broker/v2/pkg/rids"
 )
 
 // SpecificProvider is the base interface that Provider implementations must implement. Do not use it directly on
@@ -19,4 +21,7 @@ type SpecificProvider interface {
 
 	// PublishRaw publishes a low-level event with a []byte on a subject
 	PublishRaw(subject string, data []byte) Error
+
+	// NewCall creates a Call to be used internally
+	NewCall(p rids.Pattern, payload interface{}) Call
 }

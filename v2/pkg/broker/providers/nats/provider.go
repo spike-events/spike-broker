@@ -16,6 +16,7 @@ import (
 	"github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
 	"github.com/spike-events/spike-broker/v2/pkg/broker"
+	"github.com/spike-events/spike-broker/v2/pkg/rids"
 )
 
 const (
@@ -181,6 +182,10 @@ func (s *Provider) RequestRaw(subject string, data []byte, overrideTimeout ...ti
 	}
 
 	return rs, nil
+}
+
+func (s *Provider) NewCall(p rids.Pattern, payload interface{}) broker.Call {
+	return broker.NewCall(p, payload)
 }
 
 func (s *Provider) connError(_ *nats.Conn, err error) {

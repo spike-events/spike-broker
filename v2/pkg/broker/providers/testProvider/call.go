@@ -2,34 +2,59 @@ package testProvider
 
 import (
 	"encoding/json"
+	"net/http"
 	"time"
 
 	"github.com/hetiansu5/urlquery"
 	"github.com/spike-events/spike-broker/v2/pkg/broker"
 	"github.com/spike-events/spike-broker/v2/pkg/rids"
+	spikeutils "github.com/spike-events/spike-broker/v2/pkg/spike-utils"
 	"github.com/vincent-petithory/dataurl"
 )
 
 type callRequest struct {
-	p       rids.Pattern
-	result  broker.Error
-	token   broker.RawData
-	payload broker.RawData
+	Pattern rids.Pattern `json:"pattern"`
+	error   broker.Error
+	result  broker.Message
+	Token   broker.RawData `json:"token"`
+	Payload broker.RawData `json:"payload"`
 	okF     func(...interface{})
 	errF    func(interface{})
 	fileF   func(*dataurl.DataURL)
 }
 
+func (c *callRequest) UnmarshalJSON(data []byte) error {
+	type callInnerType struct {
+		Pattern json.RawMessage `json:"pattern"`
+		Token   broker.RawData  `json:"token"`
+		Payload broker.RawData  `json:"payload"`
+	}
+	var callInner callInnerType
+	err := json.Unmarshal(data, &callInner)
+	if err != nil {
+		return err
+	}
+
+	pattern, err := rids.UnmarshalPattern(callInner.Pattern)
+	if err != nil {
+		return err
+	}
+	c.Payload = callInner.Payload
+	c.Pattern = pattern
+	c.Token = callInner.Token
+	return nil
+}
+
 func (c *callRequest) GetError() broker.Error {
-	return c.result
+	return c.error
 }
 
 func (c *callRequest) RawToken() []byte {
-	return c.token
+	return c.Token
 }
 
 func (c *callRequest) RawData() []byte {
-	return c.payload
+	return c.Payload
 }
 
 func (c *callRequest) Reply() string {
@@ -41,7 +66,7 @@ func (c *callRequest) Provider() broker.Provider {
 }
 
 func (c *callRequest) Endpoint() rids.Pattern {
-	return c.p
+	return c.Pattern
 }
 
 func (c *callRequest) PathParam(key string) string {
@@ -56,11 +81,11 @@ func (c *callRequest) PathParam(key string) string {
 }
 
 func (c *callRequest) ParseData(v interface{}) error {
-	return json.Unmarshal([]byte(c.payload), v)
+	return json.Unmarshal([]byte(c.Payload), v)
 }
 
 func (c *callRequest) ParseQuery(q interface{}) error {
-	query := c.p.QueryParams()
+	query := c.Pattern.QueryParams()
 	switch query.(type) {
 	case string:
 		return urlquery.Unmarshal([]byte(query.(string)), q)
@@ -86,31 +111,61 @@ func (c *callRequest) Timeout(timeout time.Duration) {
 }
 
 func (c *callRequest) File(f *dataurl.DataURL) {
-	c.result = nil
+	c.error = nil
 	if c.fileF != nil {
 		c.fileF(f)
 	}
+	var success broker.Message
+	success.CodeInt = http.StatusOK
+	payload, err := json.Marshal(f)
+	if err != nil {
+		panic(err)
+	}
+	success.DataIface = payload
+	c.result = success
 }
 
 func (c *callRequest) OK(result ...interface{}) {
-	c.result = nil
+	c.error = nil
 	if c.okF != nil {
 		c.okF(result...)
 	}
+	var success broker.Message
+	success.CodeInt = http.StatusOK
+
+	if len(result) > 0 {
+		switch result[0].(type) {
+		case string:
+			success.DataIface = []byte(result[0].(string))
+			return
+		case []byte:
+			success.DataIface = result[0].([]byte)
+			return
+		}
+
+		// Make sure we always marshal pointer structures
+		result[0] = spikeutils.PointerFromInterface(result[0])
+		encoded, err := json.Marshal(result[0])
+		if err != nil {
+			panic(err)
+		}
+		success.DataIface = encoded
+	}
+	c.result = success
 }
 
 func (c *callRequest) InternalError(err error) {
-	c.result = broker.InternalError(err)
+	c.error = broker.InternalError(err)
 	if c.errF != nil {
-		c.errF(c.result)
+		c.errF(c.error)
 	}
 }
 
 func (c *callRequest) Error(err error, msg ...string) {
 	if brokerErr, ok := err.(broker.Error); ok {
-		c.result = brokerErr
+		c.error = brokerErr
 		if c.errF != nil {
-			c.errF(c.result)
+			c.errF(c.error)
 		}
 		return
 	}
@@ -118,9 +173,9 @@ func (c *callRequest) Error(err error, msg ...string) {
 }
 
 func (c *callRequest) NotFound() {
-	c.result = broker.ErrorNotFound
+	c.error = broker.ErrorNotFound
 	if c.errF != nil {
-		c.errF(c.result)
+		c.errF(c.error)
 	}
 }
 
@@ -130,7 +185,7 @@ func (c *callRequest) SetReply(reply string) {
 }
 
 func (c *callRequest) SetToken(token []byte) {
-	c.token = token
+	c.Token = token
 }
 
 func (c *callRequest) SetProvider(provider broker.Provider) {
@@ -156,9 +211,9 @@ func NewCall(p rids.Pattern, payload interface{}, token []byte,
 	}
 	data, _ := json.Marshal(payload)
 	return &callRequest{
-		p:       p,
-		token:   token,
-		payload: data,
+		Pattern: p,
+		Token:   token,
+		Payload: data,
 		okF:     okF,
 		errF:    errF,
 		fileF:   fileF,

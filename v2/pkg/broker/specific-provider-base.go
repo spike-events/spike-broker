@@ -66,7 +66,7 @@ func (s *specificProviderBase) Get(p rids.Pattern, rs interface{}, token ...[]by
 }
 
 func (s *specificProviderBase) Request(p rids.Pattern, payload interface{}, rs interface{}, token ...[]byte) Error {
-	c := NewCall(p, payload)
+	c := s.impl.NewCall(p, payload)
 	if len(token) > 0 && len(token[0]) > 0 {
 		c.SetToken(token[0])
 	}
@@ -115,8 +115,8 @@ func (s *specificProviderBase) Request(p rids.Pattern, payload interface{}, rs i
 }
 
 func (s *specificProviderBase) Publish(p rids.Pattern, payload interface{}, token ...[]byte) Error {
-	c := NewCall(p, payload)
-	callMetaData := NewCall(p, nil)
+	c := s.impl.NewCall(p, payload)
+	callMetaData := s.impl.NewCall(p, nil)
 	if len(token) > 0 && len(token[0]) > 0 {
 		c.SetToken(token[0])
 		callMetaData.SetToken(token[0])
