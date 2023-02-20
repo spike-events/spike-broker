@@ -258,11 +258,11 @@ func (s *Provider) subscribe(sub broker.Subscription, handler broker.ServiceHand
 				h(sub, msg.Data, msg.Reply)
 			}()
 		}
-		s.printDebug("nats: channel closed on endpoint %s", p.EndpointName())
+		s.printDebug("nats: channel closed on endpoint %s", p.EndpointNameSpecific())
 	}()
 
-	s.printDebug("nats: subscribed on %s\n", sub.Resource.EndpointName())
-	return sub.Resource.EndpointName(), msgs
+	s.printDebug("nats: subscribed on %s\n", sub.Resource.EndpointNameSpecific())
+	return sub.Resource.EndpointNameSpecific(), msgs
 }
 
 func (s *Provider) processResponse(subject, inbox string, c chan *nats.Msg, t time.Duration) (json.RawMessage, broker.Error) {
