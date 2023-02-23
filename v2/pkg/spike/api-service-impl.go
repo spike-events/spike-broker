@@ -79,7 +79,8 @@ func (s *serviceImpl) StartService() error {
 		s.monitorSubs = make([]func(), 0)
 		for group, subs := range withMonitors.Monitors() {
 			for _, sub := range subs {
-				if unsubscribe, err := s.broker.Monitor(group, sub, handler); err == nil {
+				ctxGroup := fmt.Sprintf("%s-%s", s.opts.Service.Rid().Name(), group)
+				if unsubscribe, err := s.broker.Monitor(ctxGroup, sub, handler); err == nil {
 					s.monitorSubs = append(s.monitorSubs, unsubscribe)
 				} else {
 					return err

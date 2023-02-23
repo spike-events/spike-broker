@@ -62,7 +62,7 @@ func (s *testServiceImpl) StartService() error {
 		monitors := withMonitors.Monitors()
 		for g, ms := range monitors {
 			for _, m := range ms {
-				_, err := s.broker.Monitor(g, m, nil)
+				_, err := s.broker.Monitor(fmt.Sprintf("%s-%s", s.opts.Service.Rid().Name(), g), m, nil)
 				if err != nil {
 					return err
 				}
