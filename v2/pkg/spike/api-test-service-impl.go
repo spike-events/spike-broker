@@ -23,7 +23,7 @@ type testServiceImpl struct {
 	logger            service.Logger
 }
 
-func (s *testServiceImpl) RegisterService(options Options) error {
+func (s *testServiceImpl) Setup(options Options) error {
 	s.opts = &options
 	s.ctx, s.cancel = context.WithTimeout(context.Background(), options.Timeout)
 	id, err := uuid.NewV4()
@@ -37,6 +37,10 @@ func (s *testServiceImpl) RegisterService(options Options) error {
 	}
 	s.logger = options.Service.Logger()
 	return nil
+}
+
+func (s *testServiceImpl) RegisterService(options Options) error {
+	return s.Setup(options)
 }
 
 func (s *testServiceImpl) StartService() error {
