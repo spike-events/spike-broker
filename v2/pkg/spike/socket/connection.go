@@ -28,6 +28,7 @@ type WSConnection interface {
 	GetID() fmt.Stringer
 	GetToken() broker.RawData
 	GetHandlers() []rids.Pattern
+	GetEvents() []rids.Pattern
 	Context() context.Context
 	CancelContext()
 	Broker() broker.Provider
@@ -85,7 +86,24 @@ func (ws *wsConnection) GetToken() broker.RawData {
 }
 
 func (ws *wsConnection) GetHandlers() []rids.Pattern {
-	return ws.handlers
+	handlers := make([]rids.Pattern, 0)
+	for _, evt := range ws.handlers {
+		switch evt.Method() {
+		case rids.GET, rids.POST, rids.PUT, rids.PATCH, rids.DELETE:
+			handlers = append(handlers, evt)
+		}
+	}
+	return handlers
+}
+
+func (ws *wsConnection) GetEvents() []rids.Pattern {
+	events := make([]rids.Pattern, 0)
+	for _, evt := range ws.handlers {
+		if evt.Method() == rids.EVENT {
+			events = append(events, evt)
+		}
+	}
+	return events
 }
 
 func (ws *wsConnection) Context() context.Context {

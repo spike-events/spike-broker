@@ -157,18 +157,17 @@ func (h *httpServer) httpSetup(wsPrefix string) {
 		resource.Name()
 		rHandlers := rids.Patterns(resource)
 		servicesHandlers = append(servicesHandlers, rHandlers...)
-		for _, ptr := range rHandlers {
-			p := ptr
-			endpoint := p.EndpointREST()
+		for _, pattern := range rHandlers {
+			endpoint := pattern.EndpointREST()
 			httpHandler := func(w http.ResponseWriter, r *http.Request) {
-				h.httpHandler(p, w, r)
+				h.httpHandler(pattern, w, r)
 			}
 
-			for param := range p.Params() {
+			for param := range pattern.Params() {
 				endpoint = strings.ReplaceAll(endpoint, fmt.Sprintf("$%s", param), fmt.Sprintf("{%s}", param))
 			}
-			h.opts.Logger.Printf("%s -> %s", p.Method(), endpoint)
-			switch p.Method() {
+			h.opts.Logger.Printf("%s -> %s", pattern.Method(), endpoint)
+			switch pattern.Method() {
 			case rids.GET:
 				h.router.Get(endpoint, httpHandler)
 			case rids.POST:
