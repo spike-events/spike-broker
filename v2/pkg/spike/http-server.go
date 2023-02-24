@@ -158,6 +158,10 @@ func (h *httpServer) httpSetup(wsPrefix string) {
 		rHandlers := rids.Patterns(resource)
 		servicesHandlers = append(servicesHandlers, rHandlers...)
 		for _, pattern := range rHandlers {
+			if pattern.Method() == rids.EVENT {
+				continue
+			}
+
 			endpoint := pattern.EndpointREST()
 			httpHandler := func(w http.ResponseWriter, r *http.Request) {
 				h.httpHandler(pattern, w, r)
@@ -166,6 +170,7 @@ func (h *httpServer) httpSetup(wsPrefix string) {
 			for param := range pattern.Params() {
 				endpoint = strings.ReplaceAll(endpoint, fmt.Sprintf("$%s", param), fmt.Sprintf("{%s}", param))
 			}
+
 			h.opts.Logger.Printf("%s -> %s", pattern.Method(), endpoint)
 			switch pattern.Method() {
 			case rids.GET:
@@ -179,7 +184,6 @@ func (h *httpServer) httpSetup(wsPrefix string) {
 			case rids.DELETE:
 				h.router.Delete(endpoint, httpHandler)
 			}
-
 		}
 	}
 	// TODO: Implement WebSocket handler
