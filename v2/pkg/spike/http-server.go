@@ -157,7 +157,8 @@ func (h *httpServer) httpSetup(wsPrefix string) {
 		resource.Name()
 		rHandlers := rids.Patterns(resource)
 		servicesHandlers = append(servicesHandlers, rHandlers...)
-		for _, pattern := range rHandlers {
+		for _, p := range rHandlers {
+			pattern := p
 			if pattern.Method() == rids.EVENT {
 				continue
 			}
