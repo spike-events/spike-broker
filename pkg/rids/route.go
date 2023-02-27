@@ -24,9 +24,9 @@ func (r *route) Ready() *Pattern {
 }
 
 func (r *route) EventSocketConnected() *Pattern {
-	return r.NewMethod("User has authenticated through Socket channel", "socket.connected").Internal()
+	return r.NewMethod("User has authenticated through Socket channel", "socket.connected").Event()
 }
 
 func (r *route) EventSocketDisconnected(id ...string) *Pattern {
-	return r.NewMethod("User has disconnected from Socket channel", "socket.disconnected.$Id", id...).Internal()
+	return r.NewMethod("User has disconnected from Socket channel", "socket.disconnected.$Id", id...).Event()
 }
