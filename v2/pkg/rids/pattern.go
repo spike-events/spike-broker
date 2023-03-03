@@ -169,10 +169,24 @@ func (p *pattern) EndpointREST() string {
 
 // EndpointName returns generic SpecificEndpoint version (with patterns)
 func (p *pattern) EndpointName() string {
+	if p.MethodValue == nil {
+		panic("cannot call EndpointName withou method defined")
+	}
+	if len(p.MethodValue.GenericEndpoint) == 0 {
+		return fmt.Sprintf("%v.%v", p.Service(), p.MethodValue.HttpMethod)
+	}
 	return fmt.Sprintf("%v.%v.%v", p.Service(), p.MethodValue.GenericEndpoint, p.MethodValue.HttpMethod)
 }
 
 func (p *pattern) EndpointNameSpecific() string {
+	if p.MethodValue == nil {
+		panic("cannot call EndpointNameSpecific without setting method")
+	}
+
+	if len(p.MethodValue.GenericEndpoint) == 0 {
+		return p.EndpointName()
+	}
+	
 	endpoint := p.MethodValue.GenericEndpoint
 	epParts := strings.Split(endpoint, ".")
 	for _, epPart := range epParts {

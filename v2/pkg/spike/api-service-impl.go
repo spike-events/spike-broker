@@ -21,9 +21,9 @@ type serviceImpl struct {
 	monitorSubs []func()
 }
 
-func (s *serviceImpl) RegisterService(options Options) error {
+func (s *serviceImpl) Setup(options Options) error {
 	s.opts = &options
-	s.ctx, s.cancel = context.WithTimeout(context.Background(), options.Timeout)
+	s.ctx, s.cancel = context.WithCancel(context.Background())
 	id, err := uuid.NewV4()
 	if err != nil {
 		return err
@@ -32,6 +32,11 @@ func (s *serviceImpl) RegisterService(options Options) error {
 	s.broker = options.Service.Broker()
 	s.logger = options.Service.Logger()
 	return nil
+}
+
+func (s *serviceImpl) RegisterService(options Options) error {
+	options.Service.Logger().Printf("use Setup instead of RegisterService")
+	return s.Setup(options)
 }
 
 func (s *serviceImpl) StartService() error {
@@ -74,7 +79,8 @@ func (s *serviceImpl) StartService() error {
 		s.monitorSubs = make([]func(), 0)
 		for group, subs := range withMonitors.Monitors() {
 			for _, sub := range subs {
-				if unsubscribe, err := s.broker.Monitor(group, sub, handler); err == nil {
+				ctxGroup := fmt.Sprintf("%s-%s", s.opts.Service.Rid().Name(), group)
+				if unsubscribe, err := s.broker.Monitor(ctxGroup, sub, handler); err == nil {
 					s.monitorSubs = append(s.monitorSubs, unsubscribe)
 				} else {
 					return err

@@ -103,20 +103,23 @@ func NewTestProvider(ctx context.Context) Provider {
 
 func (t *testProvider) requestMocked(
 	mp map[string]RequestMock,
-	subject string,
 	data []byte,
 	overrideTimeout ...time.Duration,
 ) ([]byte, broker.Error) {
-	if f, ok := mp[subject]; ok {
-		c := NewCallFromRequestMock(data)
-		f(c)
-		var err error
+	var c callRequest
+	err := json.Unmarshal(data, &c)
+	if err != nil {
+		return nil, broker.InternalError(err)
+	}
+
+	if f, ok := mp[c.Endpoint().EndpointName()]; ok {
+		f(&c)
 		var response json.RawMessage
 		rErr := c.GetError()
 		if rErr != nil {
 			return nil, rErr
 		}
-		response, err = json.Marshal(&c.successResult)
+		response, err = json.Marshal(&c.result)
 		if err != nil {
 			panic(err)
 		}
@@ -126,12 +129,12 @@ func (t *testProvider) requestMocked(
 	return nil, broker.ErrorServiceUnavailable
 }
 
-func (t *testProvider) RequestRaw(subject string, data []byte, overrideTimeout ...time.Duration) ([]byte, broker.Error) {
-	return t.requestMocked(t.mocks.Requests, subject, data, overrideTimeout...)
+func (t *testProvider) RequestRaw(_ string, data []byte, overrideTimeout ...time.Duration) ([]byte, broker.Error) {
+	return t.requestMocked(t.mocks.Requests, data, overrideTimeout...)
 }
 
-func (t *testProvider) PublishRaw(subject string, data []byte) broker.Error {
-	_, err := t.requestMocked(t.mocks.Publishes, subject, data)
+func (t *testProvider) PublishRaw(_ string, data []byte) broker.Error {
+	_, err := t.requestMocked(t.mocks.Publishes, data)
 	return err
 }
 
@@ -144,6 +147,10 @@ func (t *testProvider) SubscribeRaw(s broker.Subscription, _ string, handler bro
 }
 
 func (t *testProvider) Close() {}
+
+func (t *testProvider) NewCall(p rids.Pattern, payload interface{}) broker.Call {
+	return NewCall(p, payload, nil, t.respHandlers.OkF, t.respHandlers.ErrF, t.respHandlers.FileF)
+}
 
 func (t *testProvider) subscribe(m map[string]Subscription, s Subscription) {
 	m[s.sub.Resource.EndpointName()] = s

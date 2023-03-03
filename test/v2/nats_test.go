@@ -103,6 +103,15 @@ func (s *NatsTest) SetupSuite() {
 	}
 }
 
+func (s *NatsTest) TestRootRID() {
+	var ret struct {
+		Field string
+		Value int
+	}
+	err := Request(ServiceTestRid().RootEP(), nil, &ret, "token-string")
+	s.Require().Nil(err, "should have succeeded")
+}
+
 func (s *NatsTest) TestReplyFailNoToken() {
 	var id uuid.UUID
 	err := Request(ServiceTestRid().TestReply(s.id), s, &id)

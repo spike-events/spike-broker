@@ -24,8 +24,12 @@ type Options struct {
 // APIService interface for starting and stopping the service.Service instance. It is defined as an interface to allow the
 // creation of a TestBroker implementation which in turns allow the service.Service to be unit tested
 type APIService interface {
-	// RegisterService registers the Service with Spike API
+	// Deprecated: RegisterService registers the Service with Spike API.
+	// Use Setup because RegisterService seems to give the impression one can register multiple services
 	RegisterService(options Options) error
+
+	// Setup sets the API Service Options before starting
+	Setup(options Options) error
 
 	// StartService starts the service specified on provided Options
 	StartService() error

@@ -2,13 +2,14 @@ package rids
 
 import (
 	"fmt"
-	"github.com/go-chi/chi"
-	"github.com/gofrs/uuid"
-	"github.com/hetiansu5/urlquery"
 	"log"
 	"net/http"
 	"reflect"
 	"strings"
+
+	"github.com/go-chi/chi"
+	"github.com/gofrs/uuid"
+	"github.com/hetiansu5/urlquery"
 )
 
 // BaseRid rids base
@@ -106,7 +107,7 @@ func (p *Pattern) Persistent() bool {
 	return p.p.persistent
 }
 
-func (p Pattern) Concat(c string) *method {
+func (p *Pattern) Concat(c string) *method {
 	endpointNoParams := p.EndpointNoParams + "." + c
 	endpoint := p.Endpoint + "." + c
 	return &method{
@@ -232,6 +233,21 @@ func (p *method) Internal() *Pattern {
 	}
 }
 
+func (p *method) Event() *Pattern {
+	return &Pattern{
+		p.label,
+		p.service,
+		p.serviceLabel,
+		p.endpoint,
+		"EVENT",
+		false,
+		p.endpointNoParams,
+		p.params,
+		nil,
+		p,
+	}
+}
+
 func (p *Pattern) register(r *chi.Mux, hc func(endpoint EndpointRest, w http.ResponseWriter, r *http.Request)) {
 	if r == nil {
 		panic("chi.Mux is null")
@@ -284,7 +300,7 @@ func (p *Pattern) register(r *chi.Mux, hc func(endpoint EndpointRest, w http.Res
 // Routes controe todas as rotas
 func Routes(patterns []*Pattern, r *chi.Mux, hc func(endpoint EndpointRest, w http.ResponseWriter, r *http.Request)) {
 	for _, p := range patterns {
-		if p.Method != "INTERNAL" {
+		if p.Method != "INTERNAL" && p.Method != "EVENT" {
 			p.register(r, hc)
 		}
 	}

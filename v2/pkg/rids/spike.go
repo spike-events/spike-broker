@@ -8,8 +8,7 @@ var spikeImp spike
 
 // Spike internal events
 func Spike() *spike {
-	spikeImp.name = "spike"
-	spikeImp.label = "spike"
+	spikeImp.Base = NewRid("spike", "spike", "", 2)
 	return &spikeImp
 }
 

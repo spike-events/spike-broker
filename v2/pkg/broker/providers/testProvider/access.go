@@ -13,12 +13,12 @@ type accessRequest struct {
 
 func (a *accessRequest) AccessDenied(err ...broker.Error) {
 	if len(err) > 0 {
-		a.result = err[0]
+		a.error = err[0]
 	} else {
-		a.result = broker.ErrorAccessDenied
+		a.error = broker.ErrorAccessDenied
 	}
 	if a.errF != nil {
-		a.errF(a.result)
+		a.errF(a.error)
 	}
 }
 

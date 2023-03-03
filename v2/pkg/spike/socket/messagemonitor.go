@@ -20,7 +20,7 @@ func (m *WSMessageMonitor) Handle(ws WSConnection) broker.Error {
 		ws.SetSessionToken(token)
 	}
 
-	p, brokerErr := PatternFromEndpoint(ws.GetHandlers(), m.SpecificEndpoint())
+	p, brokerErr := PatternFromEndpoint(ws.GetEvents(), m.SpecificEndpoint())
 	if brokerErr != nil {
 		return brokerErr
 	}

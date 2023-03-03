@@ -117,6 +117,10 @@ func GetBearer(r *http.Request) (accessToken string, ok bool) {
 }
 
 func PointerFromInterface(data interface{}) interface{} {
+	if reflect.ValueOf(data).Type().Kind() == reflect.Map {
+		return data
+	}
+
 	if reflect.ValueOf(data).Type().Kind() != reflect.Ptr {
 		dataPtr := reflect.New(reflect.TypeOf(data))
 		dataPtr.Elem().Set(reflect.ValueOf(data))

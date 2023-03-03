@@ -2,7 +2,6 @@ package rids
 
 import (
 	"fmt"
-	"net/http"
 	"reflect"
 )
 
@@ -86,7 +85,7 @@ func Patterns(rid Resource) []Pattern {
 			if len(ps) > 0 {
 				if v, ok := ps[0].Interface().(*pattern); ok {
 					switch v.Method() {
-					case http.MethodGet, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodPost:
+					case GET, PUT, PATCH, DELETE, POST, EVENT:
 						patterns = append(patterns, v)
 					}
 				}
