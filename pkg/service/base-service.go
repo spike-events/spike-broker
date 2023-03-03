@@ -16,7 +16,6 @@ import (
 	"github.com/spike-events/spike-broker/pkg/models/migration"
 	"github.com/spike-events/spike-broker/pkg/providers"
 	"github.com/spike-events/spike-broker/pkg/rids"
-	providerKafka "github.com/spike-events/spike-broker/pkg/service/providers/kafka"
 	providers2 "github.com/spike-events/spike-broker/pkg/service/providers/nats"
 	providerSpike "github.com/spike-events/spike-broker/pkg/service/providers/spike"
 	"github.com/spike-events/spike-broker/pkg/service/request"
@@ -242,8 +241,8 @@ func (s *Base) Init(migration migration.Migration, subscribers ...func()) {
 	//		panic("invalid provider")
 	//	}
 	//	s.provider = s.options.CustomProvider
-	case providers.KafkaProvider:
-		s.provider = providerKafka.NewKafkaConn(s.options.KafkaConfig, s.ctx)
+	//case providers.KafkaProvider:
+	//	s.provider = providerKafka.NewKafkaConn(s.options.KafkaConfig, s.ctx)
 	case providers.SpikeProvider:
 		s.provider = providerSpike.NewSpikeConn(s.options.SpikeConfig, s.ctx)
 	default:

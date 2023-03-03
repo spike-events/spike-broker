@@ -53,9 +53,9 @@ func (p *ProxyOptions) IsValid() error {
 	if len(p.Services) == 0 && !p.Developer {
 		return fmt.Errorf("Services are required")
 	}
-	if providers.ProviderType(os.Getenv("PROVIDER")) == providers.KafkaProvider && p.KafkaConfig == nil {
-		return fmt.Errorf("kafka config is required")
-	}
+	//if providers.ProviderType(os.Getenv("PROVIDER")) == providers.KafkaProvider && p.KafkaConfig == nil {
+	//	return fmt.Errorf("kafka config is required")
+	//}
 	if providers.ProviderType(os.Getenv("PROVIDER")) == providers.SpikeProvider && p.SpikeConfig == nil {
 		return fmt.Errorf("spike config is required")
 	}
