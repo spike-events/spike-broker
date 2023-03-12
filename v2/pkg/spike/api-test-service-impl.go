@@ -177,3 +177,43 @@ func (s *testServiceImpl) TestRequestOrPublish(params APITestRequestOrPublish) b
 	handleRequestForTest(params.Pattern, call, *s.opts)
 	return call.GetError()
 }
+
+func (s *testServiceImpl) TestRequestOrPublishBurst(params []APITestRequestOrPublish) broker.Error {
+	chans := make(chan broker.Error, len(params))
+	ctx, done := context.WithCancel(context.Background())
+	order := make([]chan bool, len(params))
+	for i, param := range params {
+		idx := i
+		usedParams := param
+		order[i] = make(chan bool)
+		go func() {
+			for {
+				select {
+				case <-order[idx]:
+					s.logger.Printf("burst: executing index %d", idx)
+					nextIdx := idx + 1
+					if len(order) > nextIdx {
+						order[nextIdx] <- true
+					}
+					chans <- s.TestRequestOrPublish(usedParams)
+					return
+				case <-ctx.Done():
+					return
+				}
+			}
+		}()
+	}
+	order[0] <- true
+
+	s.logger.Printf("burst: waiting for completion")
+	defer s.logger.Printf("burst: completed")
+	for range params {
+		err := <-chans
+		if err != nil {
+			done()
+			return err
+		}
+	}
+	done()
+	return nil
+}

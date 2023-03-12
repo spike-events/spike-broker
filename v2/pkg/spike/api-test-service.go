@@ -11,7 +11,7 @@ import (
 
 type APITestRequestOrPublish struct {
 	Pattern    rids.Pattern
-	Repository interface{} // Repository DEPRECATED in favor of Mocks.Repository
+	Repository interface{} // DEPRECATED in favor of Mocks.Repository
 	Payload    interface{}
 	Token      json.RawMessage
 	Mocks      testProvider.Mocks
@@ -22,7 +22,7 @@ type APITestRequestOrPublish struct {
 
 type APITestAccess struct {
 	Pattern    rids.Pattern
-	Repository interface{}
+	Repository interface{} // DEPRECATED in favor of Mocks.Repository
 	Payload    interface{}
 	Token      json.RawMessage
 	Mocks      testProvider.Mocks
@@ -34,6 +34,7 @@ type APITestService interface {
 	APIService
 	TestAccess(params APITestAccess) broker.Error
 	TestRequestOrPublish(params APITestRequestOrPublish) broker.Error
+	TestRequestOrPublishBurst(params []APITestRequestOrPublish) broker.Error
 }
 
 // NewAPITestService returns an APIService implementation that runs unit tests based on specified parameters
