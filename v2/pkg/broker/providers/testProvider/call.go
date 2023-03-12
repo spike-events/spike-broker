@@ -105,9 +105,8 @@ func (c *callRequest) ToJSON() json.RawMessage {
 	return data
 }
 
-func (c *callRequest) Timeout(timeout time.Duration) {
-	//TODO implement me
-	panic("implement me")
+func (c *callRequest) Timeout(_ time.Duration) {
+	// Do nothing on Timeout call
 }
 
 func (c *callRequest) File(f *dataurl.DataURL) {

@@ -70,6 +70,19 @@ func (s *testServiceImpl) StartService() error {
 		}
 	}
 
+	// Setup Mocks
+	if s.startRequestMocks.ExternalAPIs != nil {
+		if withExternalAPI, ok := s.opts.Service.(service.WithExternalAPI); ok {
+			for api, impl := range s.startRequestMocks.ExternalAPIs {
+				err := withExternalAPI.SetExternalAPI(api, impl)
+				if err != nil {
+					return broker.InternalError(err)
+				}
+			}
+		}
+	}
+	s.broker.SetMocks(s.startRequestMocks)
+
 	// StartService the service
 	id, err := uuid.NewV4()
 	if err != nil {
@@ -139,7 +152,7 @@ func (s *testServiceImpl) TestRequestOrPublish(params APITestRequestOrPublish) b
 		if params.Repository != nil {
 			repo = params.Repository
 		} else if params.Mocks.Repository != nil {
-			repo = params.Repository
+			repo = params.Mocks.Repository
 		}
 		err := withRepository.SetRepository(repo)
 		if err != nil {
