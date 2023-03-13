@@ -10,8 +10,6 @@ import (
 	"github.com/spike-events/spike-broker/v2/pkg/service"
 )
 
-var serviceTestImplInstance *testServiceImpl
-
 type testServiceImpl struct {
 	opts              *Options
 	startRepository   interface{}

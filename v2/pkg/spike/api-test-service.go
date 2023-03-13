@@ -39,10 +39,7 @@ type APITestService interface {
 
 // NewAPITestService returns an APIService implementation that runs unit tests based on specified parameters
 func NewAPITestService(startRequestMocks testProvider.Mocks) APITestService {
-	if serviceTestImplInstance == nil {
-		serviceTestImplInstance = &testServiceImpl{
-			startRequestMocks: startRequestMocks,
-		}
+	return &testServiceImpl{
+		startRequestMocks: startRequestMocks,
 	}
-	return serviceTestImplInstance
 }
