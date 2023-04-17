@@ -2,8 +2,9 @@ package request
 
 import (
 	"encoding/json"
-	"github.com/spike-events/spike-broker/pkg/rids"
 	"time"
+
+	"github.com/spike-events/spike-broker/pkg/rids"
 )
 
 type Provider interface {

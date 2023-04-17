@@ -17,7 +17,6 @@ import (
 	"github.com/spike-events/spike-broker/pkg/providers"
 	"github.com/spike-events/spike-broker/pkg/rids"
 	providers2 "github.com/spike-events/spike-broker/pkg/service/providers/nats"
-	providerSpike "github.com/spike-events/spike-broker/pkg/service/providers/spike"
 	"github.com/spike-events/spike-broker/pkg/service/request"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -243,8 +242,8 @@ func (s *Base) Init(migration migration.Migration, subscribers ...func()) {
 	//	s.provider = s.options.CustomProvider
 	//case providers.KafkaProvider:
 	//	s.provider = providerKafka.NewKafkaConn(s.options.KafkaConfig, s.ctx)
-	case providers.SpikeProvider:
-		s.provider = providerSpike.NewSpikeConn(s.options.SpikeConfig, s.ctx)
+	//case providers.SpikeProvider:
+	//	s.provider = providerSpike.NewSpikeConn(s.options.SpikeConfig, s.ctx)
 	default:
 		panic(fmt.Errorf("invalid provider: %v", os.Getenv("PROVIDER")))
 	}

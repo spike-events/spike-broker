@@ -3,9 +3,10 @@ package models
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/spike-events/spike-broker/pkg/providers"
 	"os"
 	"time"
+
+	"github.com/spike-events/spike-broker/pkg/providers"
 
 	"github.com/go-playground/validator"
 	"github.com/gofrs/uuid"
@@ -56,9 +57,9 @@ func (p *ProxyOptions) IsValid() error {
 	//if providers.ProviderType(os.Getenv("PROVIDER")) == providers.KafkaProvider && p.KafkaConfig == nil {
 	//	return fmt.Errorf("kafka config is required")
 	//}
-	if providers.ProviderType(os.Getenv("PROVIDER")) == providers.SpikeProvider && p.SpikeConfig == nil {
-		return fmt.Errorf("spike config is required")
-	}
+	//if providers.ProviderType(os.Getenv("PROVIDER")) == providers.SpikeProvider && p.SpikeConfig == nil {
+	//	return fmt.Errorf("spike config is required")
+	//}
 	//if providers.ProviderType(os.Getenv("PROVIDER")) == providers.CustomProvider && p.CustomProvider == nil {
 	//	return fmt.Errorf("invalid provider, provider wasen't instanciated")
 	//}
@@ -92,7 +93,7 @@ func (base *Base) IsValid() error {
 	return validate.Struct(base)
 }
 
-//IsValid varificar se o Atividade é valido
+// IsValid varificar se o Atividade é valido
 func IsValid(p interface{}) error {
 	var validate *validator.Validate
 	validate = validator.New()
