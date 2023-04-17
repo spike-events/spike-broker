@@ -3,6 +3,10 @@ package route
 import (
 	"context"
 	"fmt"
+	"log"
+	"os"
+	"sync"
+
 	"github.com/go-chi/chi"
 	"github.com/gofrs/uuid"
 	"github.com/spike-events/spike-broker/pkg/models"
@@ -11,9 +15,6 @@ import (
 	"github.com/spike-events/spike-broker/pkg/service"
 	"github.com/spike-events/spike-broker/pkg/service/request"
 	"gorm.io/gorm"
-	"log"
-	"os"
-	"sync"
 )
 
 type routeService struct {
@@ -23,10 +24,8 @@ type routeService struct {
 	Cancel     context.CancelFunc
 	terminated chan bool
 
-	conf           models.ProxyOptions
-	m              *sync.Mutex
-	restart        chan bool
-	quitRestartJob chan bool
+	conf models.ProxyOptions
+	m    *sync.Mutex
 
 	routes         *chi.Mux
 	externalRoutes []func(r *chi.Mux)
@@ -42,15 +41,13 @@ func (s *routeService) SetHandlerFunc(externalRoutes []func(r *chi.Mux)) {
 func NewRouteService(db *gorm.DB, key uuid.UUID, auths ...*service.AuthRid) *routeService {
 	if routeServiceImpl == nil {
 		routeServiceImpl = &routeService{
-			Base:           service.NewBaseService(db, key, rids.Route()),
-			auths:          auths,
-			Cancel:         nil,
-			terminated:     make(chan bool),
-			conf:           models.ProxyOptions{},
-			m:              &sync.Mutex{},
-			restart:        make(chan bool),
-			quitRestartJob: make(chan bool),
-			routes:         nil,
+			Base:       service.NewBaseService(db, key, rids.Route()),
+			auths:      auths,
+			Cancel:     nil,
+			terminated: make(chan bool),
+			conf:       models.ProxyOptions{},
+			m:          &sync.Mutex{},
+			routes:     nil,
 		}
 	}
 	return routeServiceImpl
@@ -93,9 +90,6 @@ func (s *routeService) Stop() {
 	if s.Cancel != nil {
 		s.Cancel()
 	}
-	s.quitRestartJob <- true
-	close(s.quitRestartJob)
-	close(s.restart)
 	s.Base.Stop()
 }
 

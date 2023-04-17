@@ -3,17 +3,17 @@ package spikebroker
 import (
 	"context"
 	"fmt"
-	"github.com/go-chi/chi"
-	"github.com/spike-events/spike-broker/pkg/providers"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/go-chi/chi"
 	"github.com/gofrs/uuid"
 	"github.com/nats-io/nats-server/v2/server"
 	"github.com/spike-events/spike-broker/pkg/models"
+	"github.com/spike-events/spike-broker/pkg/providers"
 	"github.com/spike-events/spike-broker/pkg/route"
 	"github.com/spike-events/spike-broker/pkg/service"
 	"gorm.io/gorm"
@@ -114,13 +114,6 @@ func NewProxyServer(db *gorm.DB, services []HandlerService, handlerAuth HandlerA
 					log.Println(">> Processing Deps", s.Rid().Name())
 					processDependencies(s)
 					log.Println("<< Deps Processed", s.Rid().Name())
-
-					go func() {
-						<-ctx.Done()
-						log.Println(">> Stopping", s.Rid().Name())
-						s.Stop()
-						log.Println("<< Stopped", s.Rid().Name())
-					}()
 				})
 				startAllDeps = append(startAllDeps, func() {
 					log.Println(">> AllServicesStarted", s.Rid().Name())
@@ -147,10 +140,13 @@ func NewProxyServer(db *gorm.DB, services []HandlerService, handlerAuth HandlerA
 
 		// Wait for context completion
 		<-ctx.Done()
-		log.Printf("main: waiting for services to shutdown...")
+		log.Printf("main: stopping router services")
 		routerService.Stop()
+		log.Printf("main: waiting for services to shutdown...")
 		for _, s := range startedList {
+			log.Println(">> Stopping", s.Rid().Name())
 			s.Stop()
+			log.Println("<< Stopped", s.Rid().Name())
 		}
 		log.Printf("main: all services stopped")
 	}()

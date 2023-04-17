@@ -151,9 +151,13 @@ func (s *serviceImpl) Stop() error {
 		for _, unsubscribe := range s.monitorSubs {
 			unsubscribe()
 		}
+		s.logger.Printf("stopping: unsubscribed from all monitors")
+	} else {
+		s.logger.Printf("stopping: no monitor to unsubscribe")
 	}
 
 	<-s.opts.Service.Stop()
+	s.logger.Printf("stopping: service stopped, cancelling context")
 	s.cancel()
 	return nil
 }

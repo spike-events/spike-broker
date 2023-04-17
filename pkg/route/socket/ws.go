@@ -2,16 +2,17 @@ package socket
 
 import (
 	"context"
-	"github.com/gorilla/websocket"
-	"github.com/spike-events/spike-broker/pkg/rids"
-	"github.com/spike-events/spike-broker/pkg/service"
-	"github.com/spike-events/spike-broker/pkg/service/request"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/gorilla/websocket"
+	"github.com/spike-events/spike-broker/pkg/rids"
+	"github.com/spike-events/spike-broker/pkg/service"
+	"github.com/spike-events/spike-broker/pkg/service/request"
 )
 
 const (
@@ -24,7 +25,8 @@ func NewConnectionWS(srvBase *service.Base, oauth ...*service.AuthRid) func(w ht
 	go func() {
 		sigs := make(chan os.Signal, 1)
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-		<-sigs
+		sig := <-sigs
+		log.Printf("ws: received signal %s, stopping", sig)
 		cancel()
 	}()
 	return func(w http.ResponseWriter, r *http.Request) {

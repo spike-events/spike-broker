@@ -2,13 +2,16 @@ package rids
 
 type route struct{ Base }
 
-var routeImp route
+var routeImp *route
 
 // Route func
 func Route() *route {
-	routeImp.name = "route"
-	routeImp.label = "route"
-	return &routeImp
+	if routeImp == nil {
+		routeImp = &route{
+			Base: NewRid("route", "route"),
+		}
+	}
+	return routeImp
 }
 
 func (r *route) ValidateToken() *Pattern {

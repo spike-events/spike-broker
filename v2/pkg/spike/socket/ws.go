@@ -24,7 +24,8 @@ func NewConnectionWS(options Options) func(w http.ResponseWriter, r *http.Reques
 	go func() {
 		sigs := make(chan os.Signal, 1)
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-		<-sigs
+		sig := <-sigs
+		log.Printf("ws: received signal %s, stopping", sig)
 		cancel()
 	}()
 	return func(w http.ResponseWriter, r *http.Request) {

@@ -27,6 +27,7 @@ const (
 var globalTimeout time.Duration
 var globalConnections *ring.Ring
 var m sync.Mutex
+var connMutex sync.Mutex
 
 func init() {
 	t := os.Getenv("TIMEOUT")
@@ -53,6 +54,8 @@ func NewNatsProvider(config Config) broker.Provider {
 		natsConn.localNats = runServer(opts)
 	}
 
+	connMutex.Lock()
+	defer connMutex.Unlock()
 	if globalConnections == nil {
 		for range make([]int, MaxConns) {
 			bus, err := natsConn.newNatsBus()
@@ -112,6 +115,8 @@ func (s *Provider) Close() {
 	s.drain()
 	s.printDebug("nats: closing bus")
 	defer s.printDebug("nats: closing bus done")
+	connMutex.Lock()
+	connMutex.Unlock()
 	globalConnections.Do(func(busI interface{}) {
 		if bus, ok := busI.(*nats.Conn); ok {
 			bus.Close()
@@ -221,6 +226,8 @@ func (s *Provider) newNatsBus() (*nats.Conn, error) {
 func (s *Provider) drain() {
 	s.printDebug("nats: closing bus")
 	defer s.printDebug("nats: closing bus done")
+	connMutex.Lock()
+	defer connMutex.Unlock()
 	globalConnections.Do(func(busI interface{}) {
 		if bus, ok := busI.(*nats.Conn); ok {
 			bus.Drain()
@@ -229,6 +236,8 @@ func (s *Provider) drain() {
 }
 
 func (s *Provider) requestConn() *nats.Conn {
+	connMutex.Lock()
+	defer connMutex.Unlock()
 	next := globalConnections.Next()
 	globalConnections = next
 	return next.Value.(*nats.Conn)

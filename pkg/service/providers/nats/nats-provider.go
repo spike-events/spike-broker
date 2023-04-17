@@ -4,8 +4,6 @@ import (
 	"container/ring"
 	"encoding/json"
 	"fmt"
-	"github.com/hetiansu5/urlquery"
-	"github.com/spike-events/spike-broker/pkg/service/request"
 	"log"
 	"net/http"
 	"os"
@@ -15,6 +13,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/hetiansu5/urlquery"
+	"github.com/spike-events/spike-broker/pkg/service/request"
 
 	"github.com/nats-io/nats.go"
 	"github.com/spike-events/spike-broker/pkg/models"
@@ -33,6 +34,7 @@ const (
 var globalTimeout time.Duration
 var globalConnections *ring.Ring
 var m sync.Mutex
+var connMutex sync.Mutex
 
 func init() {
 	t := os.Getenv("TIMEOUT")
@@ -116,6 +118,8 @@ func NewNatsConn(natsURL string, configs ...Config) *NatsConn {
 func (s *NatsConn) Drain() {
 	s.printDebug("nats: closing bus")
 	defer s.printDebug("nats: closing bus done")
+	connMutex.Lock()
+	defer connMutex.Unlock()
 	globalConnections.Do(func(busI interface{}) {
 		if bus, ok := busI.(*nats.Conn); ok {
 			bus.Drain()
@@ -127,6 +131,8 @@ func (s *NatsConn) Close() {
 	s.Drain()
 	s.printDebug("nats: closing bus")
 	defer s.printDebug("nats: closing bus done")
+	connMutex.Lock()
+	defer connMutex.Unlock()
 	globalConnections.Do(func(busI interface{}) {
 		if bus, ok := busI.(*nats.Conn); ok {
 			bus.Close()
@@ -135,6 +141,8 @@ func (s *NatsConn) Close() {
 }
 
 func (s *NatsConn) requestConn() *nats.Conn {
+	connMutex.Lock()
+	defer connMutex.Unlock()
 	next := globalConnections.Next()
 	globalConnections = next
 	return next.Value.(*nats.Conn)
