@@ -75,6 +75,14 @@ func (s *serviceImpl) StartService() error {
 		}
 	}
 
+	// Subscribe Live method
+	if _, err := s.broker.Subscribe(broker.Subscription{
+		Resource: s.opts.Service.Rid().Live(),
+		Handler:  func(c broker.Call) { c.OK() },
+	}, handler); err != nil {
+		return err
+	}
+
 	if withMonitors, ok := s.opts.Service.(service.WithMonitors); ok && withMonitors.Monitors() != nil {
 		s.monitorSubs = make([]func(), 0)
 		for group, subs := range withMonitors.Monitors() {

@@ -11,6 +11,7 @@ type Resource interface {
 	WSPrefix() string
 	ValidateMonitor() Pattern
 	ValidatePublish() Pattern
+	Live() Pattern
 }
 
 // Base rid
@@ -55,10 +56,16 @@ func (b *Base) ValidatePublish() Pattern {
 	return b.NewMethod("Validate monitor", "validatePublish").Internal()
 }
 
+// Live responds when service is ready
+func (b *Base) Live() Pattern {
+	return b.NewMethod("Inform the service is ready", "live").Get()
+}
+
 func (b *Base) NewMethod(label, endpoint string, params ...fmt.Stringer) Method {
 	return newMethod(b.name, b.label, label, b.httpPrefix, endpoint, b.version, params...)
 }
 
+// ByID - DEPRECATED
 func (b *Base) ByID(id ...fmt.Stringer) Pattern {
 	return b.NewMethod("", "byId.$Id", id...).Get()
 }
