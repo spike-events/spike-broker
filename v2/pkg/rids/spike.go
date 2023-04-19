@@ -4,12 +4,16 @@ import "fmt"
 
 type spike struct{ Base }
 
-var spikeImp spike
+var spikeImp *spike
 
 // Spike internal events
 func Spike() *spike {
-	spikeImp.Base = NewRid("spike", "spike", "", 2)
-	return &spikeImp
+	if spikeImp == nil {
+		spikeImp = &spike{
+			Base: NewRid("spike", "spike", "", 2),
+		}
+	}
+	return spikeImp
 }
 
 func (r *spike) EventSocketConnected() Pattern {
