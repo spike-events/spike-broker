@@ -11,9 +11,14 @@ type accessRequest struct {
 	callRequest
 }
 
-func (a *accessRequest) AccessDenied(err ...broker.Error) {
+func (a *accessRequest) AccessDenied(err ...error) {
 	if len(err) > 0 {
-		a.error = err[0]
+		errItem := err[0]
+		if brokerError, ok := errItem.(broker.Error); ok {
+			a.error = brokerError
+		} else {
+			a.error = broker.InternalError(errItem)
+		}
 	} else {
 		a.error = broker.ErrorAccessDenied
 	}
