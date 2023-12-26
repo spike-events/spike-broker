@@ -23,7 +23,7 @@ type Access interface {
 	ToJSON() json.RawMessage
 	Timeout(timeout time.Duration)
 
-	AccessDenied(err ...Error)
+	AccessDenied(err ...error)
 	AccessGranted()
 
 	GetError() Error
@@ -51,9 +51,14 @@ type accessRequest struct {
 	call
 }
 
-func (a *accessRequest) AccessDenied(err ...Error) {
+func (a *accessRequest) AccessDenied(err ...error) {
 	if len(err) > 0 {
-		a.err = err[0]
+		errItem := err[0]
+		if brokerError, ok := errItem.(Error); ok {
+			a.err = brokerError
+		} else {
+			a.err = InternalError(errItem)
+		}
 		return
 	}
 	a.err = ErrorAccessDenied
