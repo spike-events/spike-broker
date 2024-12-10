@@ -1,7 +1,8 @@
 package v2
 
 import (
-	"github.com/gofrs/uuid"
+	uuidOld "github.com/gofrs/uuid"
+	"github.com/gofrs/uuid/v5"
 	"github.com/spike-events/spike-broker/pkg/rids"
 	"github.com/spike-events/spike-broker/pkg/service"
 	"github.com/spike-events/spike-broker/pkg/service/request"
@@ -62,7 +63,7 @@ type v1Service struct {
 	*service.Base
 }
 
-func NewV1Service(db *gorm.DB, key uuid.UUID) service.Service {
+func NewV1Service(db *gorm.DB, key uuidOld.UUID) service.Service {
 	base := service.NewBaseService(db, key, V1Service())
 	srv := &v1Service{Base: base}
 	return srv

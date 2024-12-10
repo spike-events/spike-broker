@@ -235,14 +235,14 @@ func (s *Base) Init(migration migration.Migration, subscribers ...func()) {
 			natsDebug = providers2.ConfigEnableDebug
 		}
 		s.provider = providers2.NewNatsConn(natsURL, natsDebug)
-	//case providers.CustomProvider:
+	// case providers.CustomProvider:
 	//	if s.options.CustomProvider == nil {
 	//		panic("invalid provider")
 	//	}
 	//	s.provider = s.options.CustomProvider
-	//case providers.KafkaProvider:
+	// case providers.KafkaProvider:
 	//	s.provider = providerKafka.NewKafkaConn(s.options.KafkaConfig, s.ctx)
-	//case providers.SpikeProvider:
+	// case providers.SpikeProvider:
 	//	s.provider = providerSpike.NewSpikeConn(s.options.SpikeConfig, s.ctx)
 	default:
 		panic(fmt.Errorf("invalid provider: %v", os.Getenv("PROVIDER")))

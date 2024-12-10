@@ -8,6 +8,7 @@ replace github.com/spike-events/spike-broker/v2 => ../v2/
 
 require (
 	github.com/gofrs/uuid v4.4.0+incompatible
+	github.com/gofrs/uuid/v5 v5.3.0
 	github.com/nats-io/nats.go v1.24.0
 	github.com/spike-events/spike-broker v0.2.9
 	github.com/spike-events/spike-broker/v2 v2.0.5

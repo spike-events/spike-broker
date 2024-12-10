@@ -9,7 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gofrs/uuid"
+	uuidOld "github.com/gofrs/uuid"
+	"github.com/gofrs/uuid/v5"
 	"github.com/nats-io/nats.go"
 	spikebroker "github.com/spike-events/spike-broker"
 	"github.com/spike-events/spike-broker/pkg/models"
@@ -99,7 +100,7 @@ func (v1 *V1Test) SetupSuite() {
 	}
 	db, err := gorm.Open(sqlite.Open("gorm.db"), &gorm.Config{})
 	_, connected, err := spikebroker.NewProxyServer(db, services,
-		func(db *gorm.DB, key uuid.UUID) service.Auth {
+		func(db *gorm.DB, key uuidOld.UUID) service.Auth {
 			return &auth{}
 		}, options)
 	if err != nil {
