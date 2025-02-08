@@ -1,8 +1,9 @@
 package models
 
 import (
-	"github.com/gofrs/uuid"
 	"time"
+
+	"github.com/gofrs/uuid/v5"
 )
 
 type APILock struct {

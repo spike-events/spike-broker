@@ -6,7 +6,7 @@ package v1
 //	"os"
 //	"testing"
 //
-//	"github.com/gofrs/uuid"
+//	"github.com/gofrs/uuid/v5"
 //	spikebroker "github.com/spike-events/spike-broker"
 //	"github.com/spike-events/spike-broker/pkg/models"
 //	"github.com/spike-events/spike-broker/pkg/providers"

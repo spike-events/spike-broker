@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	uuidOld "github.com/gofrs/uuid"
 	"github.com/gofrs/uuid/v5"
+	uuidOld "github.com/gofrs/uuid/v5"
 	"github.com/nats-io/nats.go"
 	spikebroker "github.com/spike-events/spike-broker"
 	"github.com/spike-events/spike-broker/pkg/models"

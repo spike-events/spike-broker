@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	"github.com/go-chi/chi"
-	"github.com/gofrs/uuid"
+	"github.com/gofrs/uuid/v5"
 	"github.com/spike-events/spike-broker/pkg/models"
 	"github.com/spike-events/spike-broker/pkg/rids"
 	"github.com/spike-events/spike-broker/pkg/route/migration"

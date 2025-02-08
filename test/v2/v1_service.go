@@ -1,8 +1,8 @@
 package v2
 
 import (
-	uuidOld "github.com/gofrs/uuid"
 	"github.com/gofrs/uuid/v5"
+	uuidOld "github.com/gofrs/uuid/v5"
 	"github.com/spike-events/spike-broker/pkg/rids"
 	"github.com/spike-events/spike-broker/pkg/service"
 	"github.com/spike-events/spike-broker/pkg/service/request"

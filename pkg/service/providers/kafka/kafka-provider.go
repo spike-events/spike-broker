@@ -6,7 +6,7 @@ package kafka
 //	"encoding/json"
 //	"fmt"
 //	"github.com/confluentinc/confluent-kafka-go/kafka"
-//	"github.com/gofrs/uuid"
+//	"github.com/gofrs/uuid/v5"
 //	"github.com/hetiansu5/urlquery"
 //	"github.com/spike-events/spike-broker/pkg/models"
 //	"github.com/spike-events/spike-broker/pkg/rids"

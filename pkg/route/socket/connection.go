@@ -2,7 +2,8 @@ package socket
 
 import (
 	"context"
-	"github.com/gofrs/uuid"
+
+	"github.com/gofrs/uuid/v5"
 	"github.com/gorilla/websocket"
 	"github.com/spike-events/spike-broker/pkg/service"
 	"github.com/spike-events/spike-broker/pkg/service/request"

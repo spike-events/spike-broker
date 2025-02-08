@@ -9,7 +9,7 @@ import (
 	"github.com/spike-events/spike-broker/pkg/providers"
 
 	"github.com/go-playground/validator"
-	"github.com/gofrs/uuid"
+	"github.com/gofrs/uuid/v5"
 	"gorm.io/gorm"
 )
 
