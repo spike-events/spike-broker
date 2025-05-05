@@ -240,8 +240,14 @@ func (h *httpServer) httpHandler(p rids.Pattern, w http.ResponseWriter, r *http.
 		w.Header().Set("Content-Type", dataURL.ContentType())
 		w.Header().Set("ETag", fmt.Sprintf("%x", sha256.Sum256(dataURL.Data)))
 		if len(dataURL.Params) > 0 {
-			if filename, ok := dataURL.Params["filename"]; ok {
-				w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=\"%s\"", filename))
+			disposition := "inline"
+			newDisposition, ok := dataURL.Params["disposition"]
+			if ok {
+				disposition = newDisposition
+			}
+			filename, ok := dataURL.Params["filename"]
+			if ok {
+				w.Header().Set("Content-Disposition", fmt.Sprintf("%s; filename=\"%s\"", disposition, filename))
 			}
 		}
 		w.WriteHeader(http.StatusOK)
